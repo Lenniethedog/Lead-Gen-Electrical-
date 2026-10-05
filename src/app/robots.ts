@@ -8,5 +8,5 @@ export default function robots(): MetadataRoute.Robots {
   if (brand.appEnv !== "production") {
     return { rules: { userAgent: "*", disallow: "/" } };
   }
-  return { rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/admin"] }, sitemap: `${brand.appUrl}/sitemap.xml` };
+  return { rules: { userAgent: "*", allow: "/", disallow: ["/api/", "/admin", "/dashboard"] }, sitemap: `${brand.appUrl}/sitemap.xml` };
 }

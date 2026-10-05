@@ -13,6 +13,10 @@ export type AssignmentStatus = "accepted" | "cancelled" | "delivery_failed" | "d
 
 export type ClientStatus = "active" | "churned" | "paused" | "prospect" | "suspended";
 
+export type ClientUserRole = "agent" | "manager" | "owner";
+
+export type ClientUserStatus = "active" | "disabled" | "invited";
+
 export type ConsentEventType = "granted" | "withdrawn";
 
 export type CoverageKind = "area" | "outward" | "postcode_prefix" | "radius" | "sector";
@@ -94,6 +98,15 @@ export interface AuditLogs {
   user_agent: string | null;
 }
 
+export interface ClientLoginTokens {
+  consumed_at: Timestamp | null;
+  created_at: Generated<Timestamp>;
+  expires_at: Timestamp;
+  id: Generated<string>;
+  token_hash: Buffer;
+  user_id: string;
+}
+
 export interface ClientPauses {
   client_id: string;
   created_at: Generated<Timestamp>;
@@ -154,6 +167,30 @@ export interface ClientServiceAreas {
 export interface ClientServices {
   client_id: string;
   service_type_id: number;
+}
+
+export interface ClientSessions {
+  created_at: Generated<Timestamp>;
+  expires_at: Timestamp;
+  id: Generated<string>;
+  last_seen_at: Generated<Timestamp>;
+  revoked_at: Timestamp | null;
+  token_hash: Buffer;
+  user_id: string;
+}
+
+export interface ClientUsers {
+  client_id: string;
+  created_at: Generated<Timestamp>;
+  disabled_at: Timestamp | null;
+  email: string;
+  id: Generated<string>;
+  invited_by: string | null;
+  last_login_at: Timestamp | null;
+  name: string;
+  role: Generated<ClientUserRole>;
+  status: Generated<ClientUserStatus>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface ClientWorkingHours {
@@ -531,9 +568,12 @@ export interface WorkerHeartbeats {
 export interface DB {
   assignment_status_transitions: AssignmentStatusTransitions;
   audit_logs: AuditLogs;
+  client_login_tokens: ClientLoginTokens;
   client_pauses: ClientPauses;
   client_service_areas: ClientServiceAreas;
   client_services: ClientServices;
+  client_sessions: ClientSessions;
+  client_users: ClientUsers;
   client_working_hours: ClientWorkingHours;
   clients: Clients;
   consent_records: ConsentRecords;

@@ -19,6 +19,7 @@ import {
   updateClientFromForm,
   type ClientOutcome,
 } from "@/server/admin/clients";
+import { inviteClientUser, resendClientUserLink, setClientUserDisabled, setClientUserRole, type UserOutcome } from "@/server/admin/users";
 
 /**
  * Server actions are reachable by a direct POST, so each authenticates inside the data layer (requireOperator).
@@ -26,6 +27,21 @@ import {
  */
 const detail = (clientId: string | undefined, query: string): Route => (clientId ? `/admin/clients/${clientId}?${query}` : `/admin/clients?${query}`) as Route;
 const outcome = (result: ClientOutcome): Route => (result.ok ? detail(result.clientId, `notice=${result.notice}`) : detail(result.clientId, `error=${result.error}`));
+
+const userOutcome = (result: UserOutcome): Route => ((result.ok ? detail(result.clientId, `notice=${result.notice}`) : detail(result.clientId, `error=${result.error}`)) + "#people") as Route;
+
+export async function inviteUserAction(form: FormData): Promise<void> {
+  redirect(userOutcome(await inviteClientUser(form)));
+}
+export async function resendUserLinkAction(form: FormData): Promise<void> {
+  redirect(userOutcome(await resendClientUserLink(form)));
+}
+export async function setUserDisabledAction(form: FormData): Promise<void> {
+  redirect(userOutcome(await setClientUserDisabled(form)));
+}
+export async function setUserRoleAction(form: FormData): Promise<void> {
+  redirect(userOutcome(await setClientUserRole(form)));
+}
 
 export async function createClientAction(_previous: FormState, form: FormData): Promise<FormState> {
   const result = await createClientFromForm(form);

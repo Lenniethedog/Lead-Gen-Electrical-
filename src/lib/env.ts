@@ -62,8 +62,20 @@ const siteShape = {
     .transform((value) => value === "true"),
 };
 
+/** Email sending: the worker sends alerts and deliveries, the web process sends sign-in links to client users (stage 6). */
+const emailShape = {
+  // console prints the message instead of sending it (development/test only). resend sends for real.
+  EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
+  RESEND_API_KEY: z.string().min(8).optional(),
+  // TESTS ONLY: point the Resend adapter at a local fake. Refused in staging/production.
+  RESEND_BASE_URL: z.url().optional(),
+  // "Display Name <address@your-domain>" on a domain verified with the provider.
+  EMAIL_FROM: z.string().min(3).max(200).optional(),
+};
+
 const serverShape = {
   ...siteShape,
+  ...emailShape,
   TURNSTILE_SECRET_KEY: nonEmpty,
   ALLOWED_ORIGINS: z.string().optional().transform(parseCsv),
   TRUST_PROXY: z.enum(["none", "cloudflare", "forwarded"]).default("none"),
@@ -120,14 +132,7 @@ const workerShape = {
   ...dbShape,
   ADMIN_BASE_URL: serverShape.ADMIN_BASE_URL,
   SENTRY_DSN: serverShape.SENTRY_DSN,
-  // --- Operator alert email -------------------------------------------------------------------------
-  // console prints the message instead of sending it (development/test only). resend sends for real.
-  EMAIL_PROVIDER: z.enum(["console", "resend"]).default("console"),
-  RESEND_API_KEY: z.string().min(8).optional(),
-  // TESTS ONLY: point the Resend adapter at a local fake. Refused in staging/production.
-  RESEND_BASE_URL: z.url().optional(),
-  // "Display Name <address@your-domain>" on a domain verified with the provider.
-  EMAIL_FROM: z.string().min(3).max(200).optional(),
+  ...emailShape,
   OPERATOR_ALERT_EMAILS: emailList,
   // The router (stage 4) checks that a consumer has not asked us to stop contacting them before it hands their lead to a business, and
   // that check compares keyed hashes. It must be the SAME key the web process uses, or a suppression made there would not be seen here.
@@ -238,6 +243,17 @@ function issue(ctx: z.RefinementCtx, path: string, message: string) {
   ctx.addIssue({ code: "custom", path: [path], message });
 }
 
+/** A sender that cannot actually send must be a startup error in a deployed process, not a silent "check your email" that never arrives. */
+function applyEmailGuards(values: { APP_ENV: AppEnvironment; EMAIL_PROVIDER: "console" | "resend"; RESEND_API_KEY?: string | undefined; EMAIL_FROM?: string | undefined; RESEND_BASE_URL?: string | undefined }, ctx: z.RefinementCtx) {
+  if (values.EMAIL_PROVIDER === "resend") {
+    if (!values.RESEND_API_KEY) issue(ctx, "RESEND_API_KEY", "is required when EMAIL_PROVIDER=resend");
+    if (!values.EMAIL_FROM) issue(ctx, "EMAIL_FROM", "is required when EMAIL_PROVIDER=resend");
+  }
+  if (!isDeployed(values.APP_ENV)) return;
+  if (values.EMAIL_PROVIDER !== "resend") issue(ctx, "EMAIL_PROVIDER", `must be "resend" in ${values.APP_ENV}: the console provider sends nothing`);
+  if (values.RESEND_BASE_URL) issue(ctx, "RESEND_BASE_URL", `a test-only override: not allowed in ${values.APP_ENV}`);
+}
+
 /**
  * Admin (operator inbox) access control. Deployed environments must have Cloudflare Access configured:
  * an inbox that shows consumers' phone numbers must never be reachable "because nobody set it up".
@@ -271,16 +287,11 @@ function applyWorkerGuards(values: WorkerValues, ctx: z.RefinementCtx) {
       if (!value) issue(ctx, name, "is required when any other TWILIO_* setting is given (all four, or none)");
     }
   }
-  if (values.EMAIL_PROVIDER === "resend") {
-    if (!values.RESEND_API_KEY) issue(ctx, "RESEND_API_KEY", "is required when EMAIL_PROVIDER=resend");
-    if (!values.EMAIL_FROM) issue(ctx, "EMAIL_FROM", "is required when EMAIL_PROVIDER=resend");
-  }
+  applyEmailGuards(values, ctx);
   if (!isDeployed(APP_ENV)) return;
 
-  if (values.EMAIL_PROVIDER !== "resend") issue(ctx, "EMAIL_PROVIDER", `must be "resend" in ${APP_ENV}: the console provider sends nothing`);
   if (!values.PRIVACY_HASH_KEY) issue(ctx, "PRIVACY_HASH_KEY", `is required in ${APP_ENV}: the router checks suppressions with it, and it must be the web process's key`);
   if (values.OPERATOR_ALERT_EMAILS.length === 0) issue(ctx, "OPERATOR_ALERT_EMAILS", `is required in ${APP_ENV}: someone must receive the alerts`);
-  if (values.RESEND_BASE_URL) issue(ctx, "RESEND_BASE_URL", `a test-only override: not allowed in ${APP_ENV}`);
   if (values.TWILIO_BASE_URL) issue(ctx, "TWILIO_BASE_URL", `a test-only override: not allowed in ${APP_ENV}`);
   if (values.WEBHOOK_ALLOW_LOOPBACK_FOR_TESTS) issue(ctx, "WEBHOOK_ALLOW_LOOPBACK_FOR_TESTS", `a test-only setting: not allowed in ${APP_ENV}`);
   if (!(values.ADMIN_BASE_URL ?? values.APP_URL).startsWith("https://")) issue(ctx, "ADMIN_BASE_URL", `the link in alert emails must be https in ${APP_ENV}`);
@@ -314,7 +325,7 @@ export function parseSiteEnv(source: Record<string, string | undefined> = proces
 }
 
 export function parseServerEnv(source: Record<string, string | undefined> = process.env): ServerEnv {
-  return parseWith(serverShape, source, [applyDeploymentGuards, applyAdminGuards]) as ServerEnv;
+  return parseWith(serverShape, source, [applyDeploymentGuards, applyAdminGuards, applyEmailGuards]) as ServerEnv;
 }
 
 export function parseWorkerEnv(source: Record<string, string | undefined> = process.env): WorkerEnv {

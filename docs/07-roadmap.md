@@ -137,6 +137,8 @@ Delivery is **off per business until an owner switches it on** (`manual` is the 
 
 ## Stage 6: Client dashboard and credit ledger
 
+**Progress:** slice 1 (sign-in, tenant isolation, the leads a business holds) is built and tested; slices 2-5 (accept/reject and outcomes; wallet, ledger and charging; disputes and refunds; settings, areas and counts) are not. See docs/00 D43-D46 and docs/05 "Stage 6, slice 1 as built".
+
 - **Build:** client authentication (passwordless), tenant-scoped repositories and RLS; dashboard per 05 (new leads, detail, accept/reject, outcomes, disputes, service-area view, notification settings, spend and performance counts);
   `client_wallets`, `credit_ledger`, `lead_charges` and the **charge waterfall at assignment**; staff-granted credit; refunds as ledger entries; nightly wallet-vs-ledger reconciliation.
 - **Why:** clients need to see and act on leads, and money correctness is the part of the schema that cannot be retrofitted.

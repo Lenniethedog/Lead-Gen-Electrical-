@@ -58,6 +58,16 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // API responses can contain per-request state and must never be cached by a CDN.
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      // The business dashboard shows personal data and carries one-time sign-in links: never cached, never indexed, and a link's secret is
+      // never sent on as a Referer to another site (the sign-in page has no outbound links today; this keeps it that way).
+      {
+        source: "/dashboard/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, max-age=0" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
       // The operator inbox shows personal data: never cached anywhere, never indexed (also in production).
       {
         source: "/admin/:path*",

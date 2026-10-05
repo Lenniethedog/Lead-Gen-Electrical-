@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 import { CLIENT_STATUSES, CLIENT_STATUS_REASONS, MAX_RADIUS_MILES } from "@/modules/clients/schemas";
 import { formatPence } from "@/modules/pricing/schemas";
 import { loadClient, loadClientDelivery, loadClientRouting } from "@/server/admin/clients";
+import { loadClientUsers } from "@/server/admin/users";
 import { AssignmentStatusBadge, ClientStatusBadge } from "../../_components/Badges";
 import { cardClass, hintClass, inputClass, labelClass, linkClass, primaryButton, secondaryButton } from "../../_components/styles";
 import { ERRORS, NOTICES } from "../../_messages";
 import { formatShort } from "../../_format";
 import { ClientForm } from "../ClientForm";
+import { ClientUsers } from "./ClientUsers";
 import { DeliverySettings } from "./DeliverySettings";
 import { RoutingPreferences } from "./RoutingPreferences";
 import { addCoverageAction, changeServicesAction, changeStatusAction, removeCoverageAction, updateClientAction } from "../actions";
@@ -27,6 +29,7 @@ export default async function ClientPage(props: PageProps<"/admin/clients/[id]">
   if (!client) notFound();
   const routing = await loadClientRouting(client.id);
   const delivery = await loadClientDelivery(client.id);
+  const users = await loadClientUsers(client.id);
 
   const notice = typeof query.notice === "string" ? NOTICES[query.notice] : undefined;
   const error = typeof query.error === "string" ? (typeof query.detail === "string" && query.error === "invalid_request" ? query.detail : ERRORS[query.error]) : undefined;
@@ -189,6 +192,8 @@ export default async function ClientPage(props: PageProps<"/admin/clients/[id]">
           </form>
         </div>
       </section>
+
+      <ClientUsers clientId={client.id} users={users} />
 
       {delivery && <DeliverySettings clientId={client.id} settings={delivery.settings} secretsAvailable={delivery.secretsAvailable} />}
 

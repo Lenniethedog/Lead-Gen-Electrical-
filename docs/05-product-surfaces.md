@@ -95,3 +95,7 @@ Not built: client logins, the dashboard, a rule editor for new kinds of rule (th
 | `/admin/deliveries` | **Deliveries that need you**: failed and dead notifications from the last three days with the reason in plain words and "Try again" (only while the lead is still with that business). |
 
 Not built: the client dashboard and client-side acceptance (stage 6), several webhooks per business and client API keys (stage 8).
+
+**Stage 6, slice 1 as built (the business dashboard: sign-in and the leads it holds).** `/dashboard/login` (ask for a link), `/dashboard/signin?token=` (a page with one button), `/dashboard` (New leads: the leads the business holds, newest first, refreshing every 30 s), `/dashboard/history` (ended ones: job details only) and `/dashboard/leads/[id]` (a tap-to-call button and the person's details **while the business holds the lead**, plus the job). Staff manage who can sign in on each client's page ("People who can sign in": invite, email a new link, change role, disable and enable); every action is audited. A business sees only its own leads (three layers, D45); a lead it was never told about is not listed; every reveal of a person's details is audited.
+
+Not built yet in stage 6: accepting and rejecting, logging calls and outcomes, credit and charging, disputes, notification settings, the read-only service-area view, performance counts. Roles (`owner`, `manager`, `agent`) are stored and shown but do not yet change what anyone can do (nothing yet differs between them; billing will).

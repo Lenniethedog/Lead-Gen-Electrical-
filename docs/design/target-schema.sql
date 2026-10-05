@@ -19,8 +19,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- ---------------------------------------------------------------------------------------------------
 -- Enumerations
 -- ---------------------------------------------------------------------------------------------------
-CREATE TYPE user_status        AS ENUM ('invited', 'active', 'disabled');
-CREATE TYPE client_user_role   AS ENUM ('owner', 'manager', 'agent');
+-- user_status and client_user_role: `client_user_status` and `client_user_role` are migration 0007 (stage 6).
 CREATE TYPE integration_kind   AS ENUM ('webhook', 'api_key');
 CREATE TYPE integration_status AS ENUM ('active', 'failing', 'disabled');
 CREATE TYPE ledger_entry_type  AS ENUM ('top_up', 'grant', 'lead_charge', 'refund', 'adjustment', 'expiry');
@@ -42,18 +41,7 @@ CREATE TYPE ad_platform        AS ENUM ('google_ads', 'meta_ads', 'bing_ads', 'o
 -- Client-login identity (stage 6). Staff are `operators` (stage 2) behind Cloudflare Access, with MFA enforced there.
 -- (The auth library, if adopted, owns sessions/accounts/verification tables; `users` is ours to extend.)
 -- ---------------------------------------------------------------------------------------------------
-CREATE TABLE users (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email           text NOT NULL CHECK (email = lower(email) AND char_length(email) <= 254),
-  name            text NOT NULL,
-  status          user_status NOT NULL DEFAULT 'invited',
-  last_login_at   timestamptz,
-  created_at      timestamptz NOT NULL DEFAULT now(),
-  updated_at      timestamptz NOT NULL DEFAULT now(),
-  deleted_at      timestamptz
-);
-CREATE UNIQUE INDEX users_email_key ON users (email) WHERE deleted_at IS NULL;
-CREATE TRIGGER users_set_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- `users` was folded into `client_users` (migration 0007, decision D44): one email belongs to one business, so a person IS a client user.
 
 -- ---------------------------------------------------------------------------------------------------
 -- Clients (the businesses that buy leads)
@@ -66,14 +54,7 @@ ALTER TABLE clients
   ADD COLUMN max_open_leads     smallint CHECK (max_open_leads > 0),
   ADD COLUMN stripe_customer_id text UNIQUE;
 
-CREATE TABLE client_users (
-  client_id  uuid NOT NULL REFERENCES clients (id) ON DELETE CASCADE,
-  user_id    uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  role       client_user_role NOT NULL DEFAULT 'agent',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (client_id, user_id)
-);
-CREATE INDEX client_users_user_idx ON client_users (user_id);
+-- client_users, client_login_tokens and client_sessions are migration 0007.
 
 -- client_services is migration 0003; a per-client price override arrives with pricing (stage 6).
 ALTER TABLE client_services ADD COLUMN price_override_pence integer CHECK (price_override_pence >= 0);
@@ -165,7 +146,7 @@ CREATE TABLE assignment_contact_attempts (
   note          text CHECK (char_length(note) <= 1000),
   job_value_pence integer CHECK (job_value_pence >= 0),     -- client-reported, for client ROI and lead-quality scoring
   occurred_at   timestamptz NOT NULL DEFAULT now(),
-  created_by    uuid REFERENCES users (id)
+  created_by    uuid REFERENCES client_users (id)
 );
 CREATE INDEX contact_attempts_idx ON assignment_contact_attempts (assignment_id, occurred_at);
 
@@ -180,7 +161,7 @@ CREATE TABLE disputes (
   description   text CHECK (char_length(description) <= 2000),
   status        dispute_status NOT NULL DEFAULT 'open',
   resolution    dispute_resolution,
-  raised_by     uuid REFERENCES users (id),
+  raised_by     uuid REFERENCES client_users (id),
   decided_by    uuid REFERENCES operators (id),
   decided_at    timestamptz,
   decision_note text CHECK (char_length(decision_note) <= 2000),

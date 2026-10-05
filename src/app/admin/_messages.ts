@@ -9,6 +9,12 @@ export const NOTICES: Record<string, string> = {
   services_saved: "Services saved.",
   rule_added: "Coverage rule added.",
   rule_removed: "Coverage rule removed.",
+  // people who can sign in (stage 6)
+  user_invited: "Invited. They have been emailed a sign-in link (it works once, for 15 minutes).",
+  user_link_sent: "A new sign-in link has been emailed.",
+  user_disabled: "Disabled. They are signed out everywhere and cannot sign in.",
+  user_enabled: "Enabled. They can ask for a sign-in link again.",
+  user_role_changed: "Role changed.",
   // pricing
   price_set: "Price saved. It applies to leads assigned from now on; existing assignments keep their price.",
   price_ended: "That price rule has ended.",
@@ -75,6 +81,9 @@ export const ERRORS: Record<string, string> = {
   cannot_move: "That cannot be moved any further.",
   invalid_age: "Enter a whole number of hours from 1 to 168.",
   overlapping_pause: "That pause could not be saved.",
+  email_taken: "That email address already belongs to someone who can sign in (at this or another business). Each address can belong to one business.",
+  invalid_input: "Enter a name and a valid email address.",
+  already_in_state: "That has already been done.",
   no_consent_record: "No consent record exists for this lead.",
 };
 

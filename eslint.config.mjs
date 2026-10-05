@@ -60,6 +60,18 @@ const eslintConfig = defineConfig([
       { group: ["node:*"], message: "UI code runs in the browser or is rendered from props: no Node built-ins." },
     ]),
   },
+  {
+    // The business dashboard (stage 6): same bans as the admin pages, but the data-access layer is src/server/client, which authenticates every call.
+    files: ["src/app/dashboard/**/*.{ts,tsx}"],
+    rules: restrict([
+      {
+        group: ["@/server/container", "@/server/db", "@/server/handlers/*", "@/server/admin/*", "@/server/client/*", "!@/server/client/portal", "!@/server/client/signin", "!@/server/client/session"],
+        message: "Dashboard pages may only call the data-access layer in @/server/client (portal, signin, session): it authenticates every call.",
+      },
+      { group: ["@/lib/db/*", "**/repo", "pg", "kysely"], message: "UI code must not import database code. Use the data-access layer." },
+      { group: ["node:*"], message: "UI code runs in the browser or is rendered from props: no Node built-ins." },
+    ]),
+  },
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", ".local/**", "test-results/**", "playwright-report/**"]),
 ]);
 

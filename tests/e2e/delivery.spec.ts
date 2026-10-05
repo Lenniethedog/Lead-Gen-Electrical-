@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createLead, signInAs, signInAsOwner } from "./api";
-import { createActiveClient, deliverNow, expectNoViolations, problem, unique } from "./flows";
-import { uniquePerson, withDb } from "./helpers";
+import { signInAs, signInAsOwner } from "./api";
+import { assignTo, createActiveClient, deliverNow, expectNoViolations, priceForTestLeads, problem, unique } from "./flows";
+import { withDb } from "./helpers";
 
 /**
  * Delivery to businesses (stage 5) in a real browser, against the production build: how a business is set up to be told (and the webhook
@@ -11,26 +11,6 @@ import { uniquePerson, withDb } from "./helpers";
  */
 const delivery = (page: Page) => page.locator("#delivery");
 const saveDelivery = (page: Page) => delivery(page).getByRole("button", { name: "Save how they are told" }).click();
-
-/** Makes sure roof repair, urgent leads have a price, so assigning by hand does not ask for one (the most specific rule wins over any other). */
-async function priceForTestLeads(page: Page) {
-  await page.goto("/admin/pricing");
-  await page.getByLabel("Service", { exact: true }).selectOption("roof_repair");
-  await page.getByLabel("Urgency").selectOption("emergency");
-  await page.getByLabel("Price per lead (£)").fill("35");
-  await page.getByRole("button", { name: "Save price" }).click();
-  await expect(page.getByRole("status")).toContainText("Price saved");
-}
-
-async function assignTo(page: Page, request: Parameters<typeof createLead>[0], baseURL: string, businessName: string): Promise<string> {
-  const reference = await createLead(request, baseURL, uniquePerson("Deliver"), "new");
-  await page.goto("/admin/leads");
-  await page.getByRole("row").filter({ hasText: reference }).getByRole("link", { name: reference }).click();
-  await page.locator("#assign-client").selectOption({ label: `${businessName} (covers this postcode)` });
-  await page.getByRole("button", { name: "Assign lead" }).click();
-  await expect(page.getByRole("status").first()).toContainText("Lead assigned");
-  return reference;
-}
 
 test.describe("setting up how a business is told", () => {
   test("validated, saved, audited; the signing secret is shown once and never again", async ({ page }) => {

@@ -72,6 +72,13 @@ named form defeats tree-shaking and adds ~60 KB to the page).
 - The Twilio callback is public and verified by signature before anything is read from it; each (provider, event) is applied once. Never relax a check there "because it is only status updates".
 - Provider adapters return a result for provider-level problems and never include the message in an error code.
 
+**Stage 6 rules (client dashboard).**
+- A business's people are `client_users` and sign in with an emailed one-time link (decision D43): no passwords, no library. The link opens a page with a **button**; only the POST spends it. Never make a GET sign anyone in, never log or store a token (only SHA-256 hashes are stored), never say whether an address has an account.
+- **The dashboard reaches data only through `src/server/client`** (`portal.ts`, `signin.ts`, `session.ts`), whose every function authenticates first and takes the business from the verified session, never from the browser. `src/server/client/client-guard.test.ts` fails if a page skips this or imports the database.
+- **Every dashboard query runs inside `withClientScope`** (`src/lib/db/client-scope.ts`) AND repeats `client_id = $1` in its own SQL. Row-level security on `lead_assignments`, `leads`, `lead_contacts` and `clients` returns only that business's rows when `app.client_id` is set, and changes nothing when it is not (staff, the worker, the router). A new table a business can read gets a policy in its migration and an entry in `client-tenancy.test.ts`. Do not add a policy that makes an unscoped path fail, and do not run business-scoped code as the table owner (RLS does not apply to it).
+- A person's contact details are shown only while the business **holds** the lead (reserved, notified, accepted, disputed) and every reveal is audited (ids only). A lead we could not deliver is never shown to the business.
+- Sessions are checked against the database on every request (person enabled, business allowed, not revoked, not idle, not past its end). Disabling a person or suspending a business ends access at once; keep that true.
+
 **Privacy rules.** Never log or store personal data outside `lead_contacts` (and consent evidence). Event payloads, fraud
 evidence and log lines carry ids, codes and counts only. Consent wording is versioned and immutable: bump `CONSENT_VERSION`,
 never edit a published version. Do not add non-essential cookies or third-party scripts without a consent mechanism.

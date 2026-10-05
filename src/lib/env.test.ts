@@ -28,6 +28,9 @@ const productionBase = {
   ADMIN_OWNER_EMAILS: "Owner@KentRoofMatch.co.uk",
   PRIVACY_HASH_KEY: "k".repeat(40),
   SENTRY_DSN: "https://publickey@o0.ingest.sentry.io/1",
+  EMAIL_PROVIDER: "resend",
+  RESEND_API_KEY: "re_live_key_value_123",
+  EMAIL_FROM: "Kent Roof Match <hello@kentroofmatch.co.uk>",
 };
 
 function problemsOf(source: Record<string, string>): string {
@@ -266,6 +269,21 @@ function workerProblems(source: Record<string, string>): string {
   }
   throw new Error("expected parseWorkerEnv to throw");
 }
+
+describe("sign-in link email (web process, stage 6)", () => {
+  it("a deployed web process must be able to send the sign-in link", () => {
+    const withoutEmail: Record<string, string> = { ...productionBase };
+    for (const key of ["EMAIL_PROVIDER", "RESEND_API_KEY", "EMAIL_FROM"]) delete withoutEmail[key];
+    expect(problemsOf(withoutEmail)).toContain('EMAIL_PROVIDER: must be "resend" in production');
+    expect(problemsOf({ ...withoutEmail, EMAIL_PROVIDER: "resend" })).toContain("RESEND_API_KEY");
+    expect(problemsOf({ ...productionBase, RESEND_BASE_URL: "http://127.0.0.1:9999" })).toContain("RESEND_BASE_URL");
+    expect(parseServerEnv(productionBase).EMAIL_PROVIDER).toBe("resend");
+  });
+
+  it("the console provider is fine on a laptop", () => {
+    expect(parseServerEnv({ APP_ENV: "development", DATABASE_URL: "postgres://u@127.0.0.1/x", TURNSTILE_SITE_KEY: "1x00000000000000000000AA", TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA" }).EMAIL_PROVIDER).toBe("console");
+  });
+});
 
 describe("parseWorkerEnv", () => {
   it("runs on a fresh checkout without Turnstile or brand settings, printing instead of sending", () => {

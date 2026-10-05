@@ -10,6 +10,10 @@ import { DEV_PRIVACY_HASH_KEY } from "@/config/privacy";
 import { createAssignmentService, type AssignmentService } from "@/modules/assignments";
 import { createClientService, type ClientService } from "@/modules/clients";
 import { createCoverageService, type CoverageService } from "@/modules/coverage";
+import { createClientAuthService, type ClientAuthService } from "@/modules/clientauth";
+import { createPortalService, type PortalService } from "@/modules/portal";
+import { createEmailSender } from "@/integrations/email";
+import type { ClientIpConfig } from "@/lib/ip";
 import { createInboxService, type InboxService } from "@/modules/inbox";
 import { createPricingService, type PricingService } from "@/modules/pricing";
 import { createPrivacyService, type PrivacyService } from "@/modules/privacy";
@@ -50,6 +54,11 @@ export interface Container {
   /** Stage 5: the delivery outbox as the admin sees it (what went to each business, failures, retry) and provider reports. The sending itself runs in the worker. */
   delivery: DeliveryService;
   twilioCallback: TwilioCallbackDeps;
+  /** Stage 6: how a business's people sign in, and what they see once they have. Reached only through src/server/client (and, for staff, src/server/admin). */
+  clientAuth: ClientAuthService;
+  portal: PortalService;
+  /** Limits on asking for sign-in links, per client address (in memory; the per-person limit is in the database). */
+  signIn: { ipConfig: ClientIpConfig; rateLimiter: SlidingWindowRateLimiter; secureCookies: boolean };
 }
 
 const globalForContainer = globalThis as typeof globalThis & { __leadgenContainer?: Container };
@@ -113,6 +122,10 @@ function buildContainer(): Container {
     routing: createRoutingService({ db, logger, verticalSlug: ROOFING.slug, isSuppressed: privacy.isSuppressed }),
     delivery,
     twilioCallback: { delivery, logger, authToken: env.TWILIO_AUTH_TOKEN, callbackUrl: twilioCallbackUrl(env.APP_URL) },
+    clientAuth: createClientAuthService({ db, logger, sender: createEmailSender(env), appUrl: env.APP_URL, brandName: getBrand().name }),
+    portal: createPortalService({ db, logger }),
+    // 10 requests / 10 min / IP: someone fumbling their address, not someone harvesting accounts.
+    signIn: { ipConfig, rateLimiter: new SlidingWindowRateLimiter({ limit: 10, windowMs: 10 * 60_000 }), secureCookies: env.APP_URL.startsWith("https://") },
   };
 }
 

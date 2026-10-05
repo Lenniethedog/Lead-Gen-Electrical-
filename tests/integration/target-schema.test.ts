@@ -4,7 +4,7 @@ import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDb, type Database } from "../../src/lib/db/client";
 import { createTestDatabase, type TestDatabase } from "../helpers/db";
-import { insertRawLead } from "../helpers/raw";
+import { insertRawClient, insertRawLead } from "../helpers/raw";
 
 /**
  * Proves the exclusivity, shared-cap, money and invariant guarantees. The assignment core, coverage rules, pricing, audit log
@@ -305,10 +305,12 @@ describe("the remaining invariants", () => {
     }
   });
 
-  it("keeps client-login emails lower-case and unique among live users", async () => {
-    await expect(sql`insert into users (email, name) values ('Client@Example.com', 'Client')`.execute(pool)).rejects.toMatchObject({ code: "23514" });
-    await sql`insert into users (email, name) values ('client.login@example.com', 'Client')`.execute(pool);
-    await expect(sql`insert into users (email, name) values ('client.login@example.com', 'Again')`.execute(pool)).rejects.toMatchObject({ code: "23505" });
+  it("keeps client-login emails lower-case and unique (one email, one business: D44)", async () => {
+    const client = await insertRawClient(t.admin);
+    const other = await insertRawClient(t.admin);
+    await expect(sql`insert into client_users (client_id, email, name) values (${client.id}, 'Client@Example.com', 'Client')`.execute(pool)).rejects.toMatchObject({ code: "23514" });
+    await sql`insert into client_users (client_id, email, name) values (${client.id}, 'client.login@example.com', 'Client')`.execute(pool);
+    await expect(sql`insert into client_users (client_id, email, name) values (${other.id}, 'client.login@example.com', 'Again')`.execute(pool)).rejects.toMatchObject({ code: "23505" });
   });
 
   it("keeps the audit log append-only", async () => {
