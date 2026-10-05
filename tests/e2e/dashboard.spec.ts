@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { signInAsOwner } from "./api";
+import { createLead, signInAsOwner } from "./api";
 import { assignTo, createActiveClient, expectNoViolations, priceForTestLeads, problem, unique } from "./flows";
-import { withDb } from "./helpers";
+import { uniquePerson, withDb } from "./helpers";
 
 /**
  * The business dashboard (stage 6) in a real browser, against the production build: staff invite a person, the person signs in with a
@@ -10,11 +10,14 @@ import { withDb } from "./helpers";
  * moment staff disable them. The emailed link cannot be read back (only its hash is stored, by design), so a known link is planted in the
  * database and then used through the real sign-in page.
  */
-async function inviteViaAdmin(page: Page, name: string, email: string) {
+async function inviteViaAdmin(page: Page, name: string, email: string, role?: "owner" | "manager" | "agent") {
   await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Work email").fill(email);
+  if (role) await page.locator("#user-role").selectOption(role);
   await page.getByRole("button", { name: "Invite and email a link" }).click();
   await expect(page.getByRole("status").first()).toContainText("Invited");
+  // Wait for THIS person on the reloaded page: an earlier invite's notice may still be showing, and acting before the reload resets the form.
+  await expect(page.getByText(email)).toBeVisible();
 }
 
 /** A sign-in link the test knows the secret of, for a person who exists. */
@@ -219,6 +222,71 @@ test.describe("the business dashboard", () => {
       await expect(page.getByRole("row").filter({ hasText: drop })).toBeVisible();
     } finally {
       await owner.context.close();
+    }
+  });
+
+  test("credit: staff switch a business to prepaid and record a payment, leads are charged and refused when it runs out; a manager sees it, an agent does not", async ({ page, request, baseURL, browser }, testInfo) => {
+    const stamp = unique();
+    const business = `E2E Credit ${stamp}`;
+    const managerEmail = `mgr-${stamp}@roofer.example`;
+    const agentEmail = `agt-${stamp}@roofer.example`;
+    await signInAsOwner(page);
+    await priceForTestLeads(page); // £35 for the leads these tests create
+    await createActiveClient(page, business);
+    const clientPage = page.url();
+    await inviteViaAdmin(page, "Mo Manager", managerEmail, "manager");
+    await inviteViaAdmin(page, "Al Agent", agentEmail, "agent");
+
+    // Prepaid with no credit: a paid lead is refused, with the reason, and the lead stays free.
+    await page.getByLabel("How they pay").selectOption("prepaid");
+    await page.locator("#billing").getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("status").first()).toContainText("Billing changed");
+    const refusedLead = await createLead(request, baseURL!, uniquePerson("Credit"), "new");
+    await page.goto("/admin/leads");
+    await page.getByRole("row").filter({ hasText: refusedLead }).getByRole("link", { name: refusedLead }).click();
+    await page.locator("#assign-client").selectOption({ label: `${business} (covers this postcode)` });
+    await page.getByRole("button", { name: "Assign lead" }).click();
+    await expect(problem(page)).toContainText("does not have enough");
+
+    // Record £70 received: exactly two leads' worth.
+    await page.goto(clientPage);
+    await page.getByLabel("What for").selectOption("top_up:bank_transfer");
+    await page.getByLabel("Amount (£)").fill("70");
+    await page.getByRole("button", { name: "Record it" }).click();
+    await expect(page.getByRole("status").first()).toContainText("Recorded");
+    await expect(page.getByLabel("Credit balance")).toHaveText("£70.00");
+    await expectNoViolations(page, "client billing panel");
+
+    // Two leads fit; the third is refused and the balance is untouched by the refusal.
+    await assignTo(page, request, baseURL!, business);
+    await assignTo(page, request, baseURL!, business);
+    await page.goto(clientPage);
+    await expect(page.getByLabel("Credit balance")).toHaveText("£0.00");
+    await expect(page.locator("#billing").getByText("Lead charge").first()).toBeVisible();
+    const third = await createLead(request, baseURL!, uniquePerson("Credit"), "new");
+    await page.goto("/admin/leads");
+    await page.getByRole("row").filter({ hasText: third }).getByRole("link", { name: third }).click();
+    await page.locator("#assign-client").selectOption({ label: `${business} (covers this postcode)` });
+    await page.getByRole("button", { name: "Assign lead" }).click();
+    await expect(problem(page)).toContainText("does not have enough");
+
+    const manager = await ownerContext(browser, baseURL!, testInfo.project);
+    const agent = await ownerContext(browser, baseURL!, testInfo.project);
+    try {
+      await signInThroughPage(manager.page, await plantLink(managerEmail));
+      await manager.page.getByRole("link", { name: "Billing" }).click();
+      await expect(manager.page.getByRole("heading", { name: "Billing" })).toBeVisible();
+      await expect(manager.page.getByText("Credit remaining").locator("xpath=following-sibling::dd[1]")).toHaveText("£0.00");
+      await expect(manager.page.getByText("£70.00").first()).toBeVisible();
+      await expect(manager.page.getByRole("heading", { name: "Credit history" })).toBeVisible();
+      await expectNoViolations(manager.page, "business billing");
+
+      await signInThroughPage(agent.page, await plantLink(agentEmail));
+      await expect(agent.page.getByRole("link", { name: "Billing" })).toHaveCount(0);
+      expect((await agent.page.goto("/dashboard/billing"))?.status()).toBe(404);
+    } finally {
+      await manager.context.close();
+      await agent.context.close();
     }
   });
 

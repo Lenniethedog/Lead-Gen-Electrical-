@@ -36,7 +36,7 @@ describe("every dashboard entry point authenticates through the data-access laye
         "login/page.tsx", "login/actions.ts",
         "signin/page.tsx", "signin/actions.ts",
         "(app)/layout.tsx", "(app)/page.tsx", "(app)/actions.ts",
-        "(app)/history/page.tsx",
+        "(app)/history/page.tsx", "(app)/billing/page.tsx",
         "(app)/leads/[id]/page.tsx", "(app)/leads/[id]/actions.ts",
       ].sort(),
     );

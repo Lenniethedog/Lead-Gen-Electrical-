@@ -185,8 +185,8 @@ export function createRoutingService(deps: RoutingServiceDeps) {
     const covered = coverage.clients.filter((client) => client.eligible);
     const notCovered = coverage.clients.filter((client) => !client.eligible).map((client) => ({ clientId: client.clientId, name: client.name, reasons: client.reasons }));
     const facts = await loadClientFacts(handle, { leadId: lead.id, clientIds: covered.map((client) => client.clientId), at, windowDays: fairnessWindowDays(rules) });
-    const decision = decide(rules, facts);
     const price = await resolvePrice(handle, { verticalId: lead.verticalId, serviceTypeId: lead.serviceTypeId, postcodeOutward: lead.postcodeOutward, urgency: lead.urgency, saleType: "exclusive" });
+    const decision = decide(rules, facts, { pricePence: price?.pricePence ?? null });
 
     return {
       decision,
@@ -280,7 +280,7 @@ export function createRoutingService(deps: RoutingServiceDeps) {
           }
           if (stillFine) {
             const [fresh] = await loadClientFacts(trx, { leadId: lead.id, clientIds: [clientId], at, windowDays: fairnessWindowDays(rules) });
-            stillFine = fresh !== undefined && evaluateClient(rules, fresh).eligible;
+            stillFine = fresh !== undefined && evaluateClient(rules, fresh, { pricePence: detail.price.pence }).eligible;
           }
           if (stillFine) {
             candidate.result = "chosen";

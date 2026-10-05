@@ -10,6 +10,7 @@ import { DEV_PRIVACY_HASH_KEY } from "@/config/privacy";
 import { createAssignmentService, type AssignmentService } from "@/modules/assignments";
 import { createClientService, type ClientService } from "@/modules/clients";
 import { createCoverageService, type CoverageService } from "@/modules/coverage";
+import { createBillingService, type BillingService } from "@/modules/billing";
 import { createClientAuthService, type ClientAuthService } from "@/modules/clientauth";
 import { createPortalService, type PortalService } from "@/modules/portal";
 import { createEmailSender } from "@/integrations/email";
@@ -57,6 +58,8 @@ export interface Container {
   /** Stage 6: how a business's people sign in, and what they see once they have. Reached only through src/server/client (and, for staff, src/server/admin). */
   clientAuth: ClientAuthService;
   portal: PortalService;
+  /** Stage 6: credit, charges and the proof they add up. Staff reach it through src/server/admin; a business through src/server/client. */
+  billing: BillingService;
   /** Limits on asking for sign-in links, per client address (in memory; the per-person limit is in the database). */
   signIn: { ipConfig: ClientIpConfig; rateLimiter: SlidingWindowRateLimiter; secureCookies: boolean };
 }
@@ -125,6 +128,7 @@ function buildContainer(): Container {
     twilioCallback: { delivery, logger, authToken: env.TWILIO_AUTH_TOKEN, callbackUrl: twilioCallbackUrl(env.APP_URL) },
     clientAuth: createClientAuthService({ db, logger, sender: createEmailSender(env), appUrl: env.APP_URL, brandName: getBrand().name }),
     portal: createPortalService({ db, logger, assignments }),
+    billing: createBillingService({ db, logger }),
     // 10 requests / 10 min / IP: someone fumbling their address, not someone harvesting accounts.
     signIn: { ipConfig, rateLimiter: new SlidingWindowRateLimiter({ limit: 10, windowMs: 10 * 60_000 }), secureCookies: env.APP_URL.startsWith("https://") },
   };

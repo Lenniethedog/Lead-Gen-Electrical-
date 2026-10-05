@@ -10,7 +10,7 @@ const withRules = (overrides: Partial<CompiledRules>): CompiledRules => ({ ...AL
 const MONDAY_NOON = { localWeekday: 1, localMinutes: 12 * 60 };
 const facts = (id: string, overrides: Partial<ClientFacts> = {}): ClientFacts => ({
   clientId: id, name: `Client ${id}`, priority: 100, weight: 1, dailyCap: null, monthlyCap: null,
-  assignedToday: 0, assignedThisMonth: 0, assignedInWindow: 0, lastAssignedAt: null, hours: [], pausedUntil: null, previouslyHeld: false, maxOpenLeads: null, openUnanswered: 0,
+  assignedToday: 0, assignedThisMonth: 0, assignedInWindow: 0, lastAssignedAt: null, hours: [], pausedUntil: null, previouslyHeld: false, maxOpenLeads: null, openUnanswered: 0, billingMode: "invoice", balancePence: 0,
   ...MONDAY_NOON, ...overrides,
 });
 const weekdayHours = (opens: number, closes: number): WorkingWindow[] => [1, 2, 3, 4, 5].map((weekday) => ({ weekday, opensMinutes: opens, closesMinutes: closes }));
@@ -161,6 +161,7 @@ function randomFacts(random: () => number, id: string): ClientFacts {
     localWeekday: int(random, 0, 6), localMinutes: int(random, 0, 1439),
     pausedUntil: random() < 0.15 ? new Date(1_770_000_000_000) : null, previouslyHeld: random() < 0.15,
     maxOpenLeads: random() < 0.6 ? null : int(random, 1, 4), openUnanswered: int(random, 0, 5),
+    billingMode: random() < 0.5 ? "prepaid" : "invoice", balancePence: pick(random, [0, 1000, 3500, 10_000]),
   };
 }
 
@@ -237,6 +238,33 @@ describe("most unanswered leads (max_open_leads)", () => {
   it("sends the lead to the next business instead", () => {
     const decision = decide(ALL_ON, [facts("a", { maxOpenLeads: 1, openUnanswered: 1, priority: 1 }), facts("b", { priority: 50 })]);
     expect(decision.ranking).toEqual(["b"]);
+  });
+});
+
+describe("credit (prepaid businesses)", () => {
+  const bare = withRules({ dailyCap: false, monthlyCap: false, workingHours: undefined, rankers: [] });
+  const prepaid = (balancePence: number) => facts("a", { billingMode: "prepaid", balancePence });
+
+  it("a prepaid business that cannot afford the lead is excluded, even with every rule off", () => {
+    expect(evaluateClient(bare, prepaid(3499), { pricePence: 3500 })).toMatchObject({ eligible: false, excludedBy: ["insufficient_credit"], detail: { balancePence: 3499, pricePence: 3500 } });
+  });
+
+  it("exactly enough is enough", () => {
+    expect(evaluateClient(bare, prepaid(3500), { pricePence: 3500 }).eligible).toBe(true);
+  });
+
+  it("an invoiced business is never excluded for credit, whatever its balance", () => {
+    expect(evaluateClient(bare, facts("a", { billingMode: "invoice", balancePence: 0 }), { pricePence: 3500 }).eligible).toBe(true);
+  });
+
+  it("a free lead, or an unpriced decision, never needs credit", () => {
+    expect(evaluateClient(bare, prepaid(0), { pricePence: 0 }).eligible).toBe(true);
+    expect(evaluateClient(bare, prepaid(0), { pricePence: null }).eligible).toBe(true);
+    expect(evaluateClient(bare, prepaid(0)).eligible).toBe(true);
+  });
+
+  it("passes the lead to a business that can pay", () => {
+    expect(decide(bare, [{ ...prepaid(100), priority: 1 }, facts("b", { priority: 50 })], { pricePence: 3500 }).ranking).toEqual(["b"]);
   });
 });
 

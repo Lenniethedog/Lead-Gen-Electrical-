@@ -11,6 +11,12 @@ export type AssignedBy = "router" | "staff";
 
 export type AssignmentStatus = "accepted" | "cancelled" | "delivery_failed" | "disputed" | "expired" | "notified" | "refunded" | "rejected" | "reserved";
 
+export type BillingMode = "invoice" | "prepaid";
+
+export type ChargeSource = "credit_balance" | "included_allowance" | "invoice";
+
+export type ChargeStatus = "posted" | "reversed";
+
 export type ClientStatus = "active" | "churned" | "paused" | "prospect" | "suspended";
 
 export type ClientUserRole = "agent" | "manager" | "owner";
@@ -50,6 +56,8 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 export type LeadSourceKind = "direct" | "organic" | "paid_search" | "paid_social" | "partner" | "referral" | "unknown";
 
 export type LeadStatus = "assigned" | "duplicate" | "expired" | "held" | "invalid" | "new" | "rejected_fraud" | "routing" | "unroutable";
+
+export type LedgerEntryType = "adjustment" | "expiry" | "grant" | "lead_charge" | "refund" | "top_up";
 
 export type NotificationChannel = "email" | "sms" | "webhook";
 
@@ -132,6 +140,7 @@ export interface ClientPauses {
 export interface Clients {
   accepts_exclusive: Generated<boolean>;
   accepts_shared: Generated<boolean>;
+  billing_mode: Generated<BillingMode>;
   company_number: string | null;
   contact_email: string;
   contact_name: string | null;
@@ -206,6 +215,12 @@ export interface ClientUsers {
   updated_at: Generated<Timestamp>;
 }
 
+export interface ClientWallets {
+  balance_pence: Generated<Int8>;
+  client_id: string;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface ClientWorkingHours {
   client_id: string;
   closes: string;
@@ -237,6 +252,19 @@ export interface ConsentTexts {
   recipient_model: RecipientModel;
   retired_at: Timestamp | null;
   version: string;
+}
+
+export interface CreditLedger {
+  amount_pence: Int8;
+  assignment_id: string | null;
+  balance_after_pence: Int8;
+  client_id: string;
+  created_at: Generated<Timestamp>;
+  created_by: string | null;
+  entry_type: LedgerEntryType;
+  id: Generated<Int8>;
+  idempotency_key: string;
+  reason: string | null;
 }
 
 export interface LeadAssignments {
@@ -286,6 +314,19 @@ export interface LeadAttributions {
   utm_medium: string | null;
   utm_source: string | null;
   utm_term: string | null;
+}
+
+export interface LeadCharges {
+  amount_pence: number;
+  assignment_id: string;
+  client_id: string;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  ledger_entry_id: Int8 | null;
+  reversal_ledger_entry_id: Int8 | null;
+  reversed_at: Timestamp | null;
+  source: ChargeSource;
+  status: Generated<ChargeStatus>;
 }
 
 export interface LeadContacts {
@@ -571,6 +612,11 @@ export interface VerticalServiceAreas {
   vertical_id: number;
 }
 
+export interface VMoneyProblems {
+  client_id: string | null;
+  problem: string | null;
+}
+
 export interface WorkerHeartbeats {
   last_beat_at: Generated<Timestamp>;
   last_reconciled_at: Timestamp | null;
@@ -588,13 +634,16 @@ export interface DB {
   client_services: ClientServices;
   client_sessions: ClientSessions;
   client_users: ClientUsers;
+  client_wallets: ClientWallets;
   client_working_hours: ClientWorkingHours;
   clients: Clients;
   consent_records: ConsentRecords;
   consent_texts: ConsentTexts;
+  credit_ledger: CreditLedger;
   lead_assignment_status_history: LeadAssignmentStatusHistory;
   lead_assignments: LeadAssignments;
   lead_attributions: LeadAttributions;
+  lead_charges: LeadCharges;
   lead_contacts: LeadContacts;
   lead_events: LeadEvents;
   lead_fraud_signals: LeadFraudSignals;
@@ -617,6 +666,7 @@ export interface DB {
   service_areas: ServiceAreas;
   service_types: ServiceTypes;
   suppressions: Suppressions;
+  v_money_problems: VMoneyProblems;
   vertical_service_areas: VerticalServiceAreas;
   verticals: Verticals;
   worker_heartbeats: WorkerHeartbeats;

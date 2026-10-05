@@ -2,6 +2,7 @@ import type { Logger } from "pino";
 import type { Database } from "@/lib/db/client";
 import { jsonResponse } from "@/lib/http";
 import { getPipelineHealth, type PipelineProblem } from "@/modules/alerts";
+import { getBillingHealth, type BillingProblem } from "@/modules/billing";
 import { getDeliveryHealth, type DeliveryProblem } from "@/modules/delivery";
 import { getRoutingHealth, type RoutingProblem } from "@/modules/routing";
 
@@ -11,16 +12,16 @@ export interface PipelineDeps {
   /** How long a computed answer is reused. Bounds the database load from a public endpoint. Default 5 s. */
   ttlMs?: number;
   /** Injectable for tests. */
-  getHealth?: (db: Database) => Promise<{ ok: boolean; problems: Array<PipelineProblem | RoutingProblem | DeliveryProblem> }>;
+  getHealth?: (db: Database) => Promise<{ ok: boolean; problems: Array<PipelineProblem | RoutingProblem | DeliveryProblem | BillingProblem> }>;
   now?: () => number;
 }
 
-type Reported = PipelineProblem | RoutingProblem | DeliveryProblem | "database";
+type Reported = PipelineProblem | RoutingProblem | DeliveryProblem | BillingProblem | "database";
 
-/** Alerting, routing and delivery are jobs of the same worker: any one failing means leads are not being looked after. */
-async function defaultHealth(db: Database): Promise<{ ok: boolean; problems: Array<PipelineProblem | RoutingProblem | DeliveryProblem> }> {
-  const [alerts, routing, delivery] = await Promise.all([getPipelineHealth(db), getRoutingHealth(db), getDeliveryHealth(db)]);
-  return { ok: alerts.ok && routing.ok && delivery.ok, problems: [...alerts.problems, ...routing.problems, ...delivery.problems] };
+/** Alerting, routing and delivery are jobs of the same worker: any one failing means leads are not being looked after. Money must also add up. */
+async function defaultHealth(db: Database): Promise<{ ok: boolean; problems: Array<PipelineProblem | RoutingProblem | DeliveryProblem | BillingProblem> }> {
+  const [alerts, routing, delivery, billing] = await Promise.all([getPipelineHealth(db), getRoutingHealth(db), getDeliveryHealth(db), getBillingHealth(db)]);
+  return { ok: alerts.ok && routing.ok && delivery.ok && billing.ok, problems: [...alerts.problems, ...routing.problems, ...delivery.problems, ...billing.problems] };
 }
 
 /**

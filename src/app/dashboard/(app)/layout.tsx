@@ -3,7 +3,7 @@ import { loadDashboardHeader } from "@/server/client/portal";
 import { signOutAction } from "./actions";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
-  const { clientName, person } = await loadDashboardHeader();
+  const { clientName, person, canSeeBilling } = await loadDashboardHeader();
   return (
     <>
       <header className="border-b border-stone-200 bg-white">
@@ -12,6 +12,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             <Link href="/dashboard" className="text-lg font-extrabold tracking-tight text-ink">{clientName}</Link>
             <Link href="/dashboard" className="font-semibold text-brand-800 underline underline-offset-4">New leads</Link>
             <Link href="/dashboard/history" className="font-semibold text-brand-800 underline underline-offset-4">History</Link>
+            {canSeeBilling && <Link href="/dashboard/billing" className="font-semibold text-brand-800 underline underline-offset-4">Billing</Link>}
           </nav>
           <form action={signOutAction} className="text-sm text-muted">
             {person} · <button type="submit" className="underline focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">Sign out</button>

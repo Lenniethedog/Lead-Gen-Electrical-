@@ -15,6 +15,7 @@ import { ALERT_POLICY } from "@/config/lead-events";
 import { DEV_PRIVACY_HASH_KEY } from "@/config/privacy";
 import { ROOFING } from "@/config/verticals/roofing";
 import { createPrivacyService } from "@/modules/privacy";
+import { createBillingService } from "@/modules/billing";
 import { cleanUpClientCredentials } from "@/modules/clientauth";
 import { ROUTING_CHANNEL, createRoutingService } from "@/modules/routing";
 import { createListener } from "./listener";
@@ -104,6 +105,8 @@ async function main() {
     logger,
     workerId,
     housekeeping: [
+      // Wallets, the ledger and the charges must agree: logs an error if not (and /api/pipeline reports it).
+      { name: "money reconciliation", run: () => createBillingService({ db, logger }).reconcile() },
       {
         name: "client credentials",
         run: async () => {

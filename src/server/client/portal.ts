@@ -9,9 +9,16 @@ import { newRequestId, requireClientSession } from "./session";
  * A business id never arrives from the browser.
  */
 
-export async function loadDashboardHeader(): Promise<{ clientName: string; person: string }> {
+export async function loadDashboardHeader(): Promise<{ clientName: string; person: string; canSeeBilling: boolean }> {
   const session = await requireClientSession();
-  return { clientName: session.clientName, person: session.name };
+  return { clientName: session.clientName, person: session.name, canSeeBilling: session.role !== "agent" };
+}
+
+/** The business's own money. Owners and managers only: an agent works the leads and does not see what they cost. Undefined means "no such page". */
+export async function loadBillingForBusiness() {
+  const session = await requireClientSession();
+  if (session.role === "agent") return undefined;
+  return getContainer().billing.forBusiness(session);
 }
 
 export async function loadLeadList(view: "open" | "history"): Promise<{ clientName: string; rows: LeadRow[]; more: boolean }> {

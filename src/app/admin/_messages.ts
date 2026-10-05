@@ -15,6 +15,10 @@ export const NOTICES: Record<string, string> = {
   user_disabled: "Disabled. They are signed out everywhere and cannot sign in.",
   user_enabled: "Enabled. They can ask for a sign-in link again.",
   user_role_changed: "Role changed.",
+  // credit
+  credit_posted: "Recorded.",
+  credit_replay: "That was already recorded (the form was sent twice), so nothing more was added.",
+  billing_mode_changed: "Billing changed. It applies to leads assigned from now on.",
   // pricing
   price_set: "Price saved. It applies to leads assigned from now on; existing assignments keep their price.",
   price_ended: "That price rule has ended.",
@@ -70,6 +74,8 @@ export const ERRORS: Record<string, string> = {
   same_client: "That business already holds this lead.",
   not_cancellable: "That assignment can no longer be changed.",
   not_notifiable: "That assignment is not waiting to be sent.",
+  insufficient_credit: "That business pays from credit and does not have enough for that (a balance cannot go below zero). Add credit first, or choose another business.",
+  invalid_mode: "Choose invoiced or prepaid.",
   forbidden: "Only an owner can do that.",
   sms_needs_phone: "Add a phone number to this business before turning on text messages.",
   webhook_needs_secret: "Generate a signing secret before turning on the webhook.",

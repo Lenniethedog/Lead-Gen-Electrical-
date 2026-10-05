@@ -201,9 +201,10 @@ export async function loadClientFacts(db: Database, input: { leadId: string; cli
     id: string; name: string; priority: number; weight: number; daily_lead_cap: number | null; monthly_lead_cap: number | null;
     assigned_today: string; assigned_month: string; assigned_window: string; last_assigned_at: Date | null;
     previously_held: boolean; paused_until: Date | null; local_weekday: number; local_minutes: number;
-    max_open_leads: number | null; open_unanswered: string;
+    max_open_leads: number | null; open_unanswered: string; billing_mode: "invoice" | "prepaid"; balance: string;
   }>`
-    select c.id, c.name, c.priority, c.weight, c.daily_lead_cap, c.monthly_lead_cap, c.max_open_leads,
+    select c.id, c.name, c.priority, c.weight, c.daily_lead_cap, c.monthly_lead_cap, c.max_open_leads, c.billing_mode,
+      coalesce((select w.balance_pence from client_wallets w where w.client_id = c.id), 0) as balance,
       (select count(*) from lead_assignments a where a.client_id = c.id and a.status in ('reserved', 'notified')) as open_unanswered,
       (select count(*) from lead_assignments a where a.client_id = c.id and a.status in ${ACTIVE}
           and a.created_at >= (date_trunc('day', ${at} at time zone c.timezone) at time zone c.timezone)) as assigned_today,
@@ -238,12 +239,16 @@ export async function loadClientFacts(db: Database, input: { leadId: string; cli
     lastAssignedAt: row.last_assigned_at, hours: hoursBy.get(row.id) ?? [],
     localWeekday: row.local_weekday, localMinutes: row.local_minutes, pausedUntil: row.paused_until, previouslyHeld: row.previously_held,
     maxOpenLeads: row.max_open_leads, openUnanswered: num(row.open_unanswered),
+    billingMode: row.billing_mode, balancePence: num(row.balance),
   }));
 }
 
 /** Locks one business against changes (a pause, a status change, a lost coverage rule) for the rest of the transaction, and says whether it is still active. */
 export async function lockClientForRouting(db: Database, clientId: string): Promise<{ status: string } | undefined> {
   const row = await db.selectFrom("clients").select(["status"]).where("id", "=", clientId).where("deleted_at", "is", null).forShare().executeTakeFirst();
+  // The wallet is locked LAST (lock order: lead, assignment, wallet): from here until commit nobody else can spend this business's credit, so
+  // the balance read just after this cannot be out of date when the charge trigger takes it.
+  if (row) await sql`select lock_wallet_balance(${clientId}::uuid)`.execute(db);
   return row;
 }
 

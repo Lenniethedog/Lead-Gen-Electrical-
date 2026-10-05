@@ -42,7 +42,8 @@ export type AssignmentFailure =
   | "same_client"
   | "not_cancellable"
   | "not_notifiable"
-  | "not_open";
+  | "not_open"
+  | "insufficient_credit";
 
 export interface AssignmentFailureResult {
   ok: false;
@@ -79,6 +80,8 @@ function mapGuardError(error: unknown): AssignmentFailure | undefined {
   const { code, message = "", constraint = "" } = error as { code?: string; message?: string; constraint?: string };
   if (code === "23505" && constraint.startsWith("lead_assignments_one_active")) return "already_assigned";
   if (code === "23514") {
+    // The wallet's own CHECK refused the charge (migration 0009): the business is paying from credit and cannot afford this lead.
+    if (constraint === "client_wallets_balance_chk") return "insufficient_credit";
     if (message.includes("withdrawn")) return "consent_withdrawn";
     if (message.includes("no consent to be shared")) return "no_consent_to_share";
     if (message.includes("erased or deleted")) return "lead_erased";

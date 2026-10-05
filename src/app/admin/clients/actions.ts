@@ -19,6 +19,7 @@ import {
   updateClientFromForm,
   type ClientOutcome,
 } from "@/server/admin/clients";
+import { changeBillingMode, postClientCredit, type BillingOutcome } from "@/server/admin/billing";
 import { inviteClientUser, resendClientUserLink, setClientUserDisabled, setClientUserRole, type UserOutcome } from "@/server/admin/users";
 
 /**
@@ -41,6 +42,15 @@ export async function setUserDisabledAction(form: FormData): Promise<void> {
 }
 export async function setUserRoleAction(form: FormData): Promise<void> {
   redirect(userOutcome(await setClientUserRole(form)));
+}
+
+const billingOutcome = (result: BillingOutcome): Route => ((result.ok ? detail(result.clientId, `notice=${result.notice}`) : detail(result.clientId, `error=${result.error}`)) + "#billing") as Route;
+
+export async function postCreditAction(form: FormData): Promise<void> {
+  redirect(billingOutcome(await postClientCredit(form)));
+}
+export async function changeBillingModeAction(form: FormData): Promise<void> {
+  redirect(billingOutcome(await changeBillingMode(form)));
 }
 
 export async function createClientAction(_previous: FormState, form: FormData): Promise<FormState> {

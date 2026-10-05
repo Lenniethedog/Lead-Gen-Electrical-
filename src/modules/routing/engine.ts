@@ -39,9 +39,17 @@ export interface ClientFacts {
   /** The most leads it wants to hold unanswered at once (null = no limit), and how many it holds unanswered now (reserved or notified). */
   maxOpenLeads: number | null;
   openUnanswered: number;
+  /** How the business pays: `prepaid` businesses pay for each lead from credit when it is assigned, so they must be able to afford it. */
+  billingMode: "invoice" | "prepaid";
+  balancePence: number;
 }
 
-export type ExclusionCode = "manual_only" | "previously_held" | "paused" | "outside_working_hours" | "daily_cap_reached" | "monthly_cap_reached" | "max_open_leads_reached";
+/** What is known about the lead itself that changes a verdict. The price is known before the decision (a lead with no price is never routed). */
+export interface DecisionContext {
+  pricePence?: number | null;
+}
+
+export type ExclusionCode = "manual_only" | "previously_held" | "paused" | "outside_working_hours" | "daily_cap_reached" | "monthly_cap_reached" | "max_open_leads_reached" | "insufficient_credit";
 
 export const EXCLUSION_TEXT: Record<ExclusionCode, string> = {
   manual_only: "Set to manual only (weight 0): never routed automatically",
@@ -51,6 +59,7 @@ export const EXCLUSION_TEXT: Record<ExclusionCode, string> = {
   daily_cap_reached: "Reached its daily lead cap",
   monthly_cap_reached: "Reached its monthly lead cap",
   max_open_leads_reached: "Already holds as many unanswered leads as it asked for",
+  insufficient_credit: "Pays from credit and does not have enough for this lead",
 };
 
 export interface ClientVerdict {
@@ -87,7 +96,7 @@ export function isOpen(hours: readonly WorkingWindow[], weekday: number, minutes
   return hours.some((window) => window.weekday === weekday && minutes >= window.opensMinutes && minutes < window.closesMinutes - graceMinutes);
 }
 
-export function evaluateClient(rules: CompiledRules, facts: ClientFacts): ClientVerdict {
+export function evaluateClient(rules: CompiledRules, facts: ClientFacts, context: DecisionContext = {}): ClientVerdict {
   const excludedBy: ExclusionCode[] = [];
   const detail: ClientVerdict["detail"] = {};
 
@@ -117,6 +126,12 @@ export function evaluateClient(rules: CompiledRules, facts: ClientFacts): Client
     excludedBy.push("max_open_leads_reached");
     detail.maxOpenLeads = facts.maxOpenLeads;
     detail.openUnanswered = facts.openUnanswered;
+  }
+  // Not a rule: a business that pays from credit cannot be given a lead it cannot pay for (the database would refuse the charge anyway).
+  if (facts.billingMode === "prepaid" && context.pricePence != null && context.pricePence > 0 && facts.balancePence < context.pricePence) {
+    excludedBy.push("insufficient_credit");
+    detail.balancePence = facts.balancePence;
+    detail.pricePence = context.pricePence;
   }
   return { clientId: facts.clientId, name: facts.name, eligible: excludedBy.length === 0, excludedBy, detail };
 }
@@ -157,9 +172,9 @@ const keysOf = (facts: ClientFacts): RankingKeys => ({
   lastAssignedAt: facts.lastAssignedAt ? facts.lastAssignedAt.toISOString() : null,
 });
 
-export function decide(rules: CompiledRules, clients: readonly ClientFacts[]): Decision {
+export function decide(rules: CompiledRules, clients: readonly ClientFacts[], context: DecisionContext = {}): Decision {
   const byId = new Map(clients.map((facts) => [facts.clientId, facts]));
-  const verdicts = clients.map((facts) => evaluateClient(rules, facts));
+  const verdicts = clients.map((facts) => evaluateClient(rules, facts, context));
   const eligibleIds = new Set(verdicts.filter((verdict) => verdict.eligible).map((verdict) => verdict.clientId));
   const ordered = rank(rules, clients.filter((facts) => eligibleIds.has(facts.clientId)));
   const position = new Map(ordered.map((facts, index) => [facts.clientId, index + 1]));

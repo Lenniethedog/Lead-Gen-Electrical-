@@ -22,9 +22,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- user_status and client_user_role: `client_user_status` and `client_user_role` are migration 0007 (stage 6).
 CREATE TYPE integration_kind   AS ENUM ('webhook', 'api_key');
 CREATE TYPE integration_status AS ENUM ('active', 'failing', 'disabled');
-CREATE TYPE ledger_entry_type  AS ENUM ('top_up', 'grant', 'lead_charge', 'refund', 'adjustment', 'expiry');
-CREATE TYPE charge_source      AS ENUM ('included_allowance', 'credit_balance', 'invoice');
-CREATE TYPE charge_status      AS ENUM ('posted', 'reversed');
+-- ledger_entry_type, charge_source, charge_status, billing_mode are migration 0009 (stage 6, slice 3).
 CREATE TYPE payment_kind       AS ENUM ('credit_top_up', 'subscription_invoice', 'manual');
 CREATE TYPE payment_status     AS ENUM ('pending', 'succeeded', 'failed', 'refunded', 'partially_refunded');
 CREATE TYPE subscription_status AS ENUM ('trialing', 'active', 'past_due', 'paused', 'cancelled');
@@ -121,13 +119,8 @@ CREATE TABLE payments (
 );
 CREATE INDEX payments_client_idx ON payments (client_id, created_at DESC);
 
-CREATE TABLE client_wallets (
-  client_id     uuid PRIMARY KEY REFERENCES clients (id),
-  -- The database itself forbids overdrawing: any statement that would make this negative fails.
-  balance_pence bigint NOT NULL DEFAULT 0 CHECK (balance_pence >= 0),
-  updated_at    timestamptz NOT NULL DEFAULT now()
-);
-
+-- client_wallets, credit_ledger and lead_charges are migration 0009 (stage 6, slice 3): charged by a trigger, refunded by a trigger, written only by
+-- SECURITY DEFINER functions. Stage 7 adds payment_id to the ledger and subscription_period_id to charges (included allowance).
 -- ---------------------------------------------------------------------------------------------------
 -- Routing configuration and audit
 -- ---------------------------------------------------------------------------------------------------
@@ -163,49 +156,7 @@ CREATE TABLE disputes (
 CREATE UNIQUE INDEX disputes_one_open_per_assignment ON disputes (assignment_id) WHERE status IN ('open', 'under_review');
 CREATE TRIGGER disputes_set_updated_at BEFORE UPDATE ON disputes FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TABLE credit_ledger (
-  id                  bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  client_id           uuid NOT NULL REFERENCES clients (id),
-  entry_type          ledger_entry_type NOT NULL,
-  amount_pence        bigint NOT NULL CHECK (amount_pence <> 0),
-  balance_after_pence bigint NOT NULL CHECK (balance_after_pence >= 0),
-  assignment_id       uuid REFERENCES lead_assignments (id),
-  payment_id          uuid REFERENCES payments (id),
-  dispute_id          uuid REFERENCES disputes (id),
-  -- Idempotency: posting the same business event twice (retry, replayed webhook) is a no-op.
-  idempotency_key     text NOT NULL UNIQUE,
-  note                text CHECK (char_length(note) <= 500),
-  created_by          uuid REFERENCES operators (id),
-  created_at          timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT credit_ledger_sign_chk CHECK (
-    (entry_type IN ('top_up', 'grant', 'refund') AND amount_pence > 0) OR
-    (entry_type IN ('lead_charge', 'expiry') AND amount_pence < 0) OR
-    entry_type = 'adjustment'
-  )
-);
-CREATE INDEX credit_ledger_client_idx ON credit_ledger (client_id, id DESC);
-CREATE TRIGGER credit_ledger_append_only BEFORE UPDATE OR DELETE ON credit_ledger FOR EACH ROW EXECUTE FUNCTION forbid_modification();
 
--- Exactly one charge per assignment: the database makes "charged twice" unrepresentable.
-CREATE TABLE lead_charges (
-  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  assignment_id          uuid NOT NULL UNIQUE REFERENCES lead_assignments (id),
-  client_id              uuid NOT NULL REFERENCES clients (id),
-  amount_pence           integer NOT NULL CHECK (amount_pence >= 0),
-  source                 charge_source NOT NULL,
-  status                 charge_status NOT NULL DEFAULT 'posted',
-  ledger_entry_id        bigint REFERENCES credit_ledger (id),
-  subscription_period_id uuid REFERENCES subscription_periods (id),
-  created_at             timestamptz NOT NULL DEFAULT now(),
-  reversed_at            timestamptz,
-  CONSTRAINT lead_charges_source_ref_chk CHECK (
-    (source = 'credit_balance'     AND ledger_entry_id IS NOT NULL) OR
-    (source = 'included_allowance' AND subscription_period_id IS NOT NULL) OR
-    (source = 'invoice')
-  ),
-  CONSTRAINT lead_charges_reversed_chk CHECK ((status = 'reversed') = (reversed_at IS NOT NULL))
-);
-CREATE INDEX lead_charges_client_idx ON lead_charges (client_id, created_at DESC);
 
 -- ---------------------------------------------------------------------------------------------------
 -- Delivery: the outbox and its attempts (see docs/03-routing-and-delivery.md)

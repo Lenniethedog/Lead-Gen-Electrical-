@@ -195,29 +195,6 @@ describe("money cannot go wrong silently", () => {
     return (rows[0] as { id: string }).id;
   }
 
-  it("charges an assignment exactly once even if two workers try at the same moment", async () => {
-    const client = await makeClient();
-    const assignmentId = await assignmentFor(client);
-    const charge = () =>
-      sql`insert into lead_charges (assignment_id, client_id, amount_pence, source) values (${assignmentId}, ${client}, 3500, 'invoice')`.execute(pool);
-    const results = await Promise.allSettled([charge(), charge(), charge(), charge()]);
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-    expect(errorOf(failures(results)[0]!)).toMatchObject({ code: "23505" });
-  });
-
-  it("forbids a wallet from going negative, even under a race of withdrawals", async () => {
-    const client = await makeClient();
-    await sql`insert into client_wallets (client_id, balance_pence) values (${client}, 10000)`.execute(pool);
-    const withdraw = () => sql`update client_wallets set balance_pence = balance_pence - 3500 where client_id = ${client}`.execute(pool);
-
-    const results = await Promise.allSettled(Array.from({ length: 6 }, withdraw));
-
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(2); // 10000 funds exactly two 3500 charges
-    for (const failure of failures(results)) expect(errorOf(failure)).toMatchObject({ code: "23514" });
-    const { rows } = await sql<{ balance_pence: string }>`select balance_pence from client_wallets where client_id = ${client}`.execute(pool);
-    expect(Number(rows[0]!.balance_pence)).toBe(3000);
-  });
-
   it("will not spend more than a subscription's included allowance when charges race", async () => {
     const client = await makeClient();
     const plan = await sql<{ id: string }>`insert into plans (code, name, included_leads) values (${`plan_${counter}`}, 'Starter', 3) returning id`.execute(pool);
@@ -231,24 +208,6 @@ describe("money cannot go wrong silently", () => {
 
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
     for (const failure of failures(results)) expect(errorOf(failure)).toMatchObject({ code: "23514" });
-  });
-
-  it("applies a ledger entry only once per business event, and never lets it be edited", async () => {
-    const client = await makeClient();
-    const post = () =>
-      sql`insert into credit_ledger (client_id, entry_type, amount_pence, balance_after_pence, idempotency_key)
-          values (${client}, 'top_up', 5000, 5000, ${`stripe:evt_${counter}`})`.execute(pool);
-    const results = await Promise.allSettled([post(), post(), post()]);
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-    await expect(sql`update credit_ledger set amount_pence = 1 where client_id = ${client}`.execute(pool)).rejects.toMatchObject({ code: "23514" });
-    await expect(sql`delete from credit_ledger where client_id = ${client}`.execute(pool)).rejects.toMatchObject({ code: "23514" });
-  });
-
-  it("rejects ledger entries whose sign contradicts their type", async () => {
-    const client = await makeClient();
-    await expect(
-      sql`insert into credit_ledger (client_id, entry_type, amount_pence, balance_after_pence, idempotency_key) values (${client}, 'lead_charge', 3500, 3500, 'bad-sign')`.execute(pool),
-    ).rejects.toMatchObject({ code: "23514" });
   });
 
   it("allows one open dispute per assignment and processes a replayed provider event once", async () => {
