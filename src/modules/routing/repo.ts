@@ -201,8 +201,10 @@ export async function loadClientFacts(db: Database, input: { leadId: string; cli
     id: string; name: string; priority: number; weight: number; daily_lead_cap: number | null; monthly_lead_cap: number | null;
     assigned_today: string; assigned_month: string; assigned_window: string; last_assigned_at: Date | null;
     previously_held: boolean; paused_until: Date | null; local_weekday: number; local_minutes: number;
+    max_open_leads: number | null; open_unanswered: string;
   }>`
-    select c.id, c.name, c.priority, c.weight, c.daily_lead_cap, c.monthly_lead_cap,
+    select c.id, c.name, c.priority, c.weight, c.daily_lead_cap, c.monthly_lead_cap, c.max_open_leads,
+      (select count(*) from lead_assignments a where a.client_id = c.id and a.status in ('reserved', 'notified')) as open_unanswered,
       (select count(*) from lead_assignments a where a.client_id = c.id and a.status in ${ACTIVE}
           and a.created_at >= (date_trunc('day', ${at} at time zone c.timezone) at time zone c.timezone)) as assigned_today,
       (select count(*) from lead_assignments a where a.client_id = c.id and a.status in ${ACTIVE}
@@ -235,6 +237,7 @@ export async function loadClientFacts(db: Database, input: { leadId: string; cli
     assignedToday: num(row.assigned_today), assignedThisMonth: num(row.assigned_month), assignedInWindow: num(row.assigned_window),
     lastAssignedAt: row.last_assigned_at, hours: hoursBy.get(row.id) ?? [],
     localWeekday: row.local_weekday, localMinutes: row.local_minutes, pausedUntil: row.paused_until, previouslyHeld: row.previously_held,
+    maxOpenLeads: row.max_open_leads, openUnanswered: num(row.open_unanswered),
   }));
 }
 

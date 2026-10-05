@@ -237,8 +237,8 @@ export function createClientService(config: ClientServiceDeps) {
         await updateRoutingPreferences(trx, input.clientId, input.prefs);
         await writeAudit(trx, {
           actorId: input.operator.id, action: "client.routing_changed", entityType: "client", entityId: input.clientId,
-          before: before && { priority: before.priority, weight: before.weight, daily_lead_cap: before.dailyLeadCap, monthly_lead_cap: before.monthlyLeadCap },
-          after: { priority: input.prefs.priority, weight: input.prefs.weight, daily_lead_cap: input.prefs.dailyLeadCap, monthly_lead_cap: input.prefs.monthlyLeadCap },
+          before: before && { priority: before.priority, weight: before.weight, daily_lead_cap: before.dailyLeadCap, monthly_lead_cap: before.monthlyLeadCap, max_open_leads: before.maxOpenLeads },
+          after: { priority: input.prefs.priority, weight: input.prefs.weight, daily_lead_cap: input.prefs.dailyLeadCap, monthly_lead_cap: input.prefs.monthlyLeadCap, max_open_leads: input.prefs.maxOpenLeads },
           requestId: input.requestId,
         });
         return { ok: true };

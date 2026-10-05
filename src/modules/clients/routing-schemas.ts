@@ -35,6 +35,8 @@ export interface RoutingPreferencesInput {
   weight: number;
   dailyLeadCap: number | null;
   monthlyLeadCap: number | null;
+  /** The most leads it will hold UNANSWERED (not yet accepted or declined) at once. Null = no limit. */
+  maxOpenLeads: number | null;
 }
 
 const wholeNumber = (raw: string | undefined): number | undefined => {
@@ -50,7 +52,7 @@ export function parseRoutingPreferences(fields: Record<string, string | undefine
   const weight = wholeNumber(fields.weight);
   if (weight === undefined || weight > 100) errors.weight = "Enter a whole number from 0 to 100 (0 means manual only)";
 
-  const optionalCap = (field: "dailyLeadCap" | "monthlyLeadCap", max: number, label: string): number | null | undefined => {
+  const optionalCap = (field: "dailyLeadCap" | "monthlyLeadCap" | "maxOpenLeads", max: number, label: string): number | null | undefined => {
     const raw = (fields[field] ?? "").trim();
     if (raw === "") return null;
     const value = wholeNumber(raw);
@@ -62,12 +64,13 @@ export function parseRoutingPreferences(fields: Record<string, string | undefine
   };
   const dailyLeadCap = optionalCap("dailyLeadCap", 1000, "daily");
   const monthlyLeadCap = optionalCap("monthlyLeadCap", 10_000, "monthly");
+  const maxOpenLeads = optionalCap("maxOpenLeads", 100, "unanswered-leads");
   if (typeof dailyLeadCap === "number" && typeof monthlyLeadCap === "number" && dailyLeadCap > monthlyLeadCap) {
     errors.monthlyLeadCap = "The monthly limit cannot be lower than the daily limit";
   }
 
-  if (Object.keys(errors).length > 0 || priority === undefined || weight === undefined || dailyLeadCap === undefined || monthlyLeadCap === undefined) return { ok: false, errors };
-  return { ok: true, value: { priority, weight, dailyLeadCap, monthlyLeadCap } };
+  if (Object.keys(errors).length > 0 || priority === undefined || weight === undefined || dailyLeadCap === undefined || monthlyLeadCap === undefined || maxOpenLeads === undefined) return { ok: false, errors };
+  return { ok: true, value: { priority, weight, dailyLeadCap, monthlyLeadCap, maxOpenLeads } };
 }
 
 // ------------------------------------------------------------------------------------------------

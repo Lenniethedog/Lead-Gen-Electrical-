@@ -21,6 +21,8 @@ export const LEAD_EVENT = {
   routingStopped: "lead.routing_stopped",
   /** Automatic delivery to the business failed on every channel: the assignment ended and the lead is free again (payload: assignment id and channels). */
   deliveryFailed: "lead.delivery_failed",
+  /** The business it was assigned to declined it (payload: assignment id and the reason code). The router offers it to someone else. */
+  declinedByBusiness: "lead.declined_by_business",
 } as const;
 
 /** Time-based policy for operator alerting. Tested; see docs/06-operations.md for the reasoning. */

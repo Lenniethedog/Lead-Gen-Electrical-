@@ -26,21 +26,21 @@ describe("priority, weight and caps", () => {
   it("start at the defaults (priority 100, weight 1, no caps, London time) and are read back", async () => {
     const id = await s.activeClient(ops);
     const result = await s.clients.routingPreferences(id);
-    expect(result?.prefs).toEqual({ clientId: id, timezone: "Europe/London", priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null });
+    expect(result?.prefs).toEqual({ clientId: id, timezone: "Europe/London", priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null, maxOpenLeads: null });
     expect(result?.hours).toEqual([]);
     expect(result?.pauses).toEqual([]);
   });
 
   it("are saved with before and after in the audit trail", async () => {
     const id = await s.activeClient(ops);
-    expect(await s.clients.setRoutingPreferences({ operator: ops, clientId: id, prefs: { priority: 10, weight: 3, dailyLeadCap: 5, monthlyLeadCap: 60 }, requestId: s.rid() })).toEqual({ ok: true });
-    expect((await s.clients.routingPreferences(id))?.prefs).toMatchObject({ priority: 10, weight: 3, dailyLeadCap: 5, monthlyLeadCap: 60 });
+    expect(await s.clients.setRoutingPreferences({ operator: ops, clientId: id, prefs: { priority: 10, weight: 3, dailyLeadCap: 5, monthlyLeadCap: 60, maxOpenLeads: 4 }, requestId: s.rid() })).toEqual({ ok: true });
+    expect((await s.clients.routingPreferences(id))?.prefs).toMatchObject({ priority: 10, weight: 3, dailyLeadCap: 5, monthlyLeadCap: 60, maxOpenLeads: 4 });
     const [entry] = await audit(id, "client.routing_changed");
     expect(entry).toMatchObject({ actor_id: ops.id, before: { priority: 100, weight: 1, daily_lead_cap: null }, after: { priority: 10, weight: 3, daily_lead_cap: 5, monthly_lead_cap: 60 } });
   });
 
   it("an unknown client is not found, and the database refuses values the form should never send", async () => {
-    expect(await s.clients.setRoutingPreferences({ operator: ops, clientId: "00000000-0000-4000-8000-000000000000", prefs: { priority: 1, weight: 1, dailyLeadCap: null, monthlyLeadCap: null }, requestId: s.rid() })).toEqual({ ok: false, code: "not_found" });
+    expect(await s.clients.setRoutingPreferences({ operator: ops, clientId: "00000000-0000-4000-8000-000000000000", prefs: { priority: 1, weight: 1, dailyLeadCap: null, monthlyLeadCap: null, maxOpenLeads: null }, requestId: s.rid() })).toEqual({ ok: false, code: "not_found" });
     expect(await s.clients.routingPreferences("00000000-0000-4000-8000-000000000000")).toBeUndefined();
     const id = await s.activeClient(ops);
     for (const bad of ["priority = 1001", "weight = 101", "daily_lead_cap = 0", "monthly_lead_cap = -1", "timezone = 'Not/AZone'"]) {

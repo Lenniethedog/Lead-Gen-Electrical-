@@ -18,3 +18,11 @@ export async function setSystemContext(db: Database, input: { requestId: string;
   await sql`select set_config('app.actor_type', 'system', true), set_config('app.actor_id', '', true),
                    set_config('app.reason', ${input.reason ?? ""}, true), set_config('app.request_id', ${input.requestId}, true)`.execute(db);
 }
+
+/** For a change made by a signed-in person at a business (accepting or declining a lead). Read by the same history triggers. */
+export async function setClientContext(db: Database, input: { clientUserId: string; reason: string; requestId: string }): Promise<void> {
+  await sql`select set_config('app.actor_type', 'client_user', true),
+                   set_config('app.actor_id', ${input.clientUserId}, true),
+                   set_config('app.reason', ${input.reason}, true),
+                   set_config('app.request_id', ${input.requestId}, true)`.execute(db);
+}

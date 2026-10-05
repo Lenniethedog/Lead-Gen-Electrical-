@@ -30,14 +30,14 @@ const CLIENTS = [
     services: ["roof_repair", "flat_roof", "roof_inspection", "guttering_fascias"],
     rules: [{ mode: "include", kind: "outward", outward: "BR5" }, { mode: "include", kind: "outward", outward: "BR6" }] as CoverageRuleInput[],
     shared: false,
-    prefs: { priority: 50, weight: 2, dailyLeadCap: 8, monthlyLeadCap: null },
+    prefs: { priority: 50, weight: 2, dailyLeadCap: 8, monthlyLeadCap: null, maxOpenLeads: null },
   },
   {
     name: "Tidewell Roofing", contact: "Aisha Rahman", email: "aisha@tidewellroofing.example.com", phone: "07123 411002",
     services: ["roof_repair", "new_roof", "chimney"],
     rules: [{ mode: "include", kind: "area", serviceAreaSlug: "bromley" }, { mode: "include", kind: "outward", outward: "BR8" }] as CoverageRuleInput[],
     shared: false,
-    prefs: { priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null },
+    prefs: { priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null, maxOpenLeads: null },
     pauseFrom: "2026-11-02T09:00", pauseUntil: "2026-11-09T09:00",
   },
   {
@@ -45,7 +45,7 @@ const CLIENTS = [
     services: ["roof_repair", "new_roof", "guttering_fascias"],
     rules: [{ mode: "include", kind: "area", serviceAreaSlug: "sevenoaks" }, { mode: "exclude", kind: "outward", outward: "TN15" }] as CoverageRuleInput[],
     shared: false,
-    prefs: { priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null },
+    prefs: { priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null, maxOpenLeads: null },
     hours: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, opens: "08:00", closes: "17:30" })),
   },
   {
@@ -53,7 +53,7 @@ const CLIENTS = [
     services: ["roof_repair", "new_roof", "flat_roof", "chimney", "guttering_fascias", "roof_inspection", "other"],
     rules: [{ mode: "include", kind: "area", serviceAreaSlug: "dartford" }, { mode: "include", kind: "area", serviceAreaSlug: "gravesend" }] as CoverageRuleInput[],
     shared: true,
-    prefs: { priority: 100, weight: 3, dailyLeadCap: null, monthlyLeadCap: 60 },
+    prefs: { priority: 100, weight: 3, dailyLeadCap: null, monthlyLeadCap: 60, maxOpenLeads: null },
   },
   {
     name: "Northdown Flat Roofs", contact: "Imran Qureshi", email: "imran@northdownflatroofs.example.com", phone: "07123 411005",
@@ -61,7 +61,7 @@ const CLIENTS = [
     rules: [{ mode: "include", kind: "radius", centerPostcode: "BR6 0AA", radiusMetres: Math.round(12 * 1609.344) }] as CoverageRuleInput[],
     shared: false,
     pause: true,
-    prefs: { priority: 100, weight: 0, dailyLeadCap: null, monthlyLeadCap: null }, // manual only
+    prefs: { priority: 100, weight: 0, dailyLeadCap: null, monthlyLeadCap: null, maxOpenLeads: null }, // manual only
   },
   { name: "Ashgrove Roofing", contact: "Helen Marsh", email: "helen@ashgroveroofing.example.com", phone: "07123 411006", services: [], rules: [], shared: false, prospect: true },
 ] as const;

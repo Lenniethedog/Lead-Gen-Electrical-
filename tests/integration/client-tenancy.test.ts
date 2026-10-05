@@ -6,6 +6,7 @@ import type { ClientSession } from "../../src/modules/clientauth";
 import { createPortalService } from "../../src/modules/portal";
 import { createTestDatabase, type TestDatabase } from "../helpers/db";
 import { insertRawAssignment, insertRawClient, insertRawLead } from "../helpers/raw";
+import { buildStage3 } from "../helpers/stage3";
 
 /**
  * One business must never see another's data (stage 6, D45). Three layers, and each is proved ALONE:
@@ -23,7 +24,7 @@ const rid = () => `req-${crypto.randomUUID().slice(0, 8)}`;
 
 beforeAll(async () => {
   t = await createTestDatabase();
-  portal = createPortalService({ db: t.db, logger: pino({ level: "silent" }) });
+  portal = createPortalService({ db: t.db, logger: pino({ level: "silent" }), assignments: buildStage3(t).assignments });
   const ca = await insertRawClient(t.admin, { name: "Alpha Roofing" });
   const cb = await insertRawClient(t.admin, { name: "Bravo Roofing" });
   a = { id: ca.id, session: sessionFor(ca.id, "Alpha Roofing") };

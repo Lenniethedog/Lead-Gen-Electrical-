@@ -5,11 +5,13 @@ import { LeadCards } from "./_leads";
 
 export const metadata: Metadata = { title: "New leads" };
 
-export default async function NewLeadsPage() {
+export default async function NewLeadsPage(props: PageProps<"/dashboard">) {
+  const query = await props.searchParams;
   const { rows, more } = await loadLeadList("open");
   return (
     <>
       <AutoRefresh everyMs={30_000} />
+      {query.notice === "declined" && <p role="status" className="mb-4 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-green-900">Declined. We will offer it to another business.</p>}
       <h1 className="text-2xl font-extrabold text-ink">New leads</h1>
       <p className="mt-1 text-muted">Leads sent only to you. The sooner you ring, the better your chance of the job. Newest first.</p>
       <LeadCards rows={rows} now={new Date()} empty="No new leads right now. We will text or email you the moment one arrives." />

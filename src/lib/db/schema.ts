@@ -19,6 +19,8 @@ export type ClientUserStatus = "active" | "disabled" | "invited";
 
 export type ConsentEventType = "granted" | "withdrawn";
 
+export type ContactOutcome = "left_voicemail" | "lost" | "no_answer" | "not_interested" | "quote_sent" | "spoke" | "won" | "wrong_number";
+
 export type CoverageKind = "area" | "outward" | "postcode_prefix" | "radius" | "sector";
 
 export type CoverageMode = "exclude" | "include";
@@ -77,6 +79,16 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type UrgencyLevel = "emergency" | "just_planning" | "within_1_month" | "within_2_weeks";
 
+export interface AssignmentContactAttempts {
+  assignment_id: string;
+  created_by: string | null;
+  id: Generated<string>;
+  job_value_pence: number | null;
+  note: string | null;
+  occurred_at: Generated<Timestamp>;
+  outcome: ContactOutcome;
+}
+
 export interface AssignmentStatusTransitions {
   from_status: AssignmentStatus;
   to_status: AssignmentStatus;
@@ -131,6 +143,7 @@ export interface Clients {
   delivery_mode: Generated<DeliveryMode>;
   id: Generated<string>;
   legal_name: string | null;
+  max_open_leads: number | null;
   monthly_lead_cap: number | null;
   name: string;
   notes: string | null;
@@ -566,6 +579,7 @@ export interface WorkerHeartbeats {
 }
 
 export interface DB {
+  assignment_contact_attempts: AssignmentContactAttempts;
   assignment_status_transitions: AssignmentStatusTransitions;
   audit_logs: AuditLogs;
   client_login_tokens: ClientLoginTokens;

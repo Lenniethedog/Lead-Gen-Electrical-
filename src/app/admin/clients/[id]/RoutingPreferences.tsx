@@ -47,6 +47,11 @@ export function RoutingPreferences({ clientId, prefs, hours, pauses }: Props) {
           <input id="monthlyLeadCap" name="monthlyLeadCap" inputMode="numeric" autoComplete="off" defaultValue={prefs.monthlyLeadCap === null ? "" : String(prefs.monthlyLeadCap)} aria-describedby="monthly-hint" className={inputClass} />
           <p id="monthly-hint" className={hintClass}>Leave empty for no limit.</p>
         </div>
+        <div>
+          <label htmlFor="maxOpenLeads" className={labelClass}>Most unanswered at once</label>
+          <input id="maxOpenLeads" name="maxOpenLeads" inputMode="numeric" autoComplete="off" defaultValue={prefs.maxOpenLeads === null ? "" : String(prefs.maxOpenLeads)} aria-describedby="open-hint" className={inputClass} />
+          <p id="open-hint" className={hintClass}>Leads they have been given but not yet accepted or declined. Once they hold this many, routing gives new leads to someone else. Leave empty for no limit.</p>
+        </div>
         <div className="sm:col-span-2 lg:col-span-4">
           <button type="submit" className={primaryButton}>Save</button>
         </div>

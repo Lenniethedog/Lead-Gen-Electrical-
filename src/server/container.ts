@@ -80,6 +80,7 @@ function buildContainer(): Container {
 
   // The web process never sends (the worker does), so its senders refuse: processDue is never called here.
   const notAWorker = { send: async () => ({ outcome: "retryable_failure" as const, errorCode: "not_a_worker" }) };
+  const assignments = createAssignmentService({ db, logger, brandName: getBrand().name, isSuppressed: privacy.isSuppressed });
   const delivery = createDeliveryService({
     db, logger, senders: { email: notAWorker },
     config: { brandName: getBrand().name, leaseSeconds: 60, sendTimeoutMs: 8_000, batchSize: 1 },
@@ -118,12 +119,12 @@ function buildContainer(): Container {
     coverage: createCoverageService({ db, verticalSlug: ROOFING.slug }),
     pricing: createPricingService({ db, logger, verticalSlug: ROOFING.slug }),
     privacy,
-    assignments: createAssignmentService({ db, logger, brandName: getBrand().name, isSuppressed: privacy.isSuppressed }),
+    assignments,
     routing: createRoutingService({ db, logger, verticalSlug: ROOFING.slug, isSuppressed: privacy.isSuppressed }),
     delivery,
     twilioCallback: { delivery, logger, authToken: env.TWILIO_AUTH_TOKEN, callbackUrl: twilioCallbackUrl(env.APP_URL) },
     clientAuth: createClientAuthService({ db, logger, sender: createEmailSender(env), appUrl: env.APP_URL, brandName: getBrand().name }),
-    portal: createPortalService({ db, logger }),
+    portal: createPortalService({ db, logger, assignments }),
     // 10 requests / 10 min / IP: someone fumbling their address, not someone harvesting accounts.
     signIn: { ipConfig, rateLimiter: new SlidingWindowRateLimiter({ limit: 10, windowMs: 10 * 60_000 }), secureCookies: env.APP_URL.startsWith("https://") },
   };

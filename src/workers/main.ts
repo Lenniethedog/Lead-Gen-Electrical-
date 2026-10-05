@@ -15,6 +15,7 @@ import { ALERT_POLICY } from "@/config/lead-events";
 import { DEV_PRIVACY_HASH_KEY } from "@/config/privacy";
 import { ROOFING } from "@/config/verticals/roofing";
 import { createPrivacyService } from "@/modules/privacy";
+import { cleanUpClientCredentials } from "@/modules/clientauth";
 import { ROUTING_CHANNEL, createRoutingService } from "@/modules/routing";
 import { createListener } from "./listener";
 import { createWorker } from "./worker";
@@ -102,6 +103,15 @@ async function main() {
     delivery,
     logger,
     workerId,
+    housekeeping: [
+      {
+        name: "client credentials",
+        run: async () => {
+          const cleared = await cleanUpClientCredentials(db);
+          if (cleared.links + cleared.sessions > 0) logger.info(cleared, "cleared out old business sign-in links and sessions");
+        },
+      },
+    ],
     pollMs: env.WORKER_POLL_MS,
     reconcileMs: env.WORKER_RECONCILE_MS,
     createListener: (onWake) =>

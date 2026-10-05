@@ -160,6 +160,68 @@ test.describe("the business dashboard", () => {
     }
   });
 
+  test("a business accepts one lead and records the call, and declines another, which leaves its list", async ({ page, request, baseURL, browser }, testInfo) => {
+    const stamp = unique();
+    const business = `E2E Answer ${stamp}`;
+    const email = `answer-${stamp}@roofer.example`;
+    await signInAsOwner(page);
+    await priceForTestLeads(page);
+    await createActiveClient(page, business);
+    await inviteViaAdmin(page, "Alex Answers", email);
+    const keep = await assignTo(page, request, baseURL!, business);
+    const drop = await assignTo(page, request, baseURL!, business);
+
+    const owner = await ownerContext(browser, baseURL!, testInfo.project);
+    try {
+      const me = owner.page;
+      await signInThroughPage(me, await plantLink(email));
+
+      // Accept.
+      await me.getByRole("link", { name: new RegExp(keep) }).click();
+      await expect(me.getByRole("heading", { name: "Do you want this lead?" })).toBeVisible();
+      await expectNoViolations(me, "lead awaiting an answer");
+      await me.getByRole("button", { name: "Accept this lead" }).click();
+      await expect(me.getByRole("status").first()).toContainText("Accepted");
+      await expect(me.getByRole("heading", { name: "Do you want this lead?" })).toHaveCount(0);
+
+      // Record the call: a value only goes with a quote or a win.
+      await me.getByLabel("How did it go?").selectOption("spoke");
+      await me.getByLabel(/Value of the quote/).fill("100");
+      await me.getByRole("button", { name: "Save" }).click();
+      await expect(problem(me)).toContainText("only for a quote or a job won");
+      await me.getByLabel("How did it go?").selectOption("won");
+      await me.getByLabel(/Value of the quote/).fill("1,500");
+      await me.getByLabel("Note (optional)").fill("Roof repair, starts Monday");
+      await me.getByRole("button", { name: "Save" }).click();
+      await expect(me.getByRole("status").first()).toContainText("Saved");
+      await expect(me.getByRole("listitem").filter({ hasText: "Won the job" })).toBeVisible();
+      await expect(me.getByRole("listitem").filter({ hasText: "£1,500.00" })).toBeVisible();
+      await expect(me.getByRole("listitem").filter({ hasText: "Roof repair, starts Monday" })).toBeVisible();
+      await expectNoViolations(me, "lead after accepting");
+
+      // Decline the other one: it leaves New leads and appears in History as Declined, without the person's details.
+      await me.goto("/dashboard");
+      await me.getByRole("link", { name: new RegExp(drop) }).click();
+      await me.getByLabel("Or decline it, because").selectOption("not_my_work");
+      await me.getByRole("button", { name: "Decline", exact: true }).click();
+      await expect(me).toHaveURL(/\/dashboard\?notice=declined/);
+      await expect(me.getByRole("status").first()).toContainText("Declined");
+      await expect(me.getByRole("link", { name: new RegExp(drop) })).toHaveCount(0);
+      await expect(me.getByRole("link", { name: new RegExp(keep) })).toBeVisible();
+      await me.goto("/dashboard/history");
+      await me.getByRole("link", { name: new RegExp(drop) }).click();
+      await expect(me.getByText("no longer with you")).toBeVisible();
+      await expect(me.getByRole("link", { name: /^Call / })).toHaveCount(0);
+      await expect(me.getByRole("button", { name: "Accept this lead" })).toHaveCount(0);
+
+      // The lead is free again for staff.
+      await page.goto("/admin/leads");
+      await expect(page.getByRole("row").filter({ hasText: drop })).toBeVisible();
+    } finally {
+      await owner.context.close();
+    }
+  });
+
   test("asking for a link says the same thing for a stranger as for a person who has an account", async ({ browser, baseURL }, testInfo) => {
     const owner = await ownerContext(browser, baseURL!, testInfo.project);
     try {

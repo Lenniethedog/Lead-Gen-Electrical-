@@ -61,6 +61,8 @@ export async function blankPersonalData(db: Database, leadId: string): Promise<v
     .where("erased_at", "is", null)
     .execute();
   await db.updateTable("leads").set({ postcode: null, erased_at: sql<Date>`now()` }).where("id", "=", leadId).execute();
+  // What a business wrote about its calls to this person may name them: it goes too. (The outcome and the amount stay: they describe the business's work.)
+  await sql`update assignment_contact_attempts set note = null where note is not null and assignment_id in (select id from lead_assignments where lead_id = ${leadId})`.execute(db);
 }
 
 export async function hasWithdrawal(db: Database, leadId: string): Promise<boolean> {

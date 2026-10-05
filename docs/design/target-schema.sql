@@ -31,7 +31,7 @@ CREATE TYPE subscription_status AS ENUM ('trialing', 'active', 'past_due', 'paus
 CREATE TYPE dispute_reason     AS ENUM ('wrong_number', 'not_homeowner', 'out_of_area', 'duplicate', 'spam', 'not_as_described', 'other');
 CREATE TYPE dispute_status     AS ENUM ('open', 'under_review', 'upheld', 'rejected', 'withdrawn');
 CREATE TYPE dispute_resolution AS ENUM ('credit_refund', 'replacement_lead', 'no_action');
-CREATE TYPE contact_outcome    AS ENUM ('no_answer', 'left_voicemail', 'spoke', 'wrong_number', 'not_interested', 'quote_sent', 'won', 'lost');
+-- contact_outcome is migration 0008 (stage 6).
 CREATE TYPE dsr_kind           AS ENUM ('access', 'erasure', 'rectification', 'restriction', 'objection', 'withdraw_consent');
 CREATE TYPE dsr_status         AS ENUM ('received', 'verifying', 'in_progress', 'completed', 'refused');
 CREATE TYPE blocklist_kind     AS ENUM ('phone', 'email', 'email_domain', 'ip');
@@ -51,7 +51,6 @@ CREATE TYPE ad_platform        AS ENUM ('google_ads', 'meta_ads', 'bing_ads', 'o
 ALTER TABLE clients
   ADD COLUMN vat_number         text,
   ADD COLUMN billing_email      text,
-  ADD COLUMN max_open_leads     smallint CHECK (max_open_leads > 0),
   ADD COLUMN stripe_customer_id text UNIQUE;
 
 -- client_users, client_login_tokens and client_sessions are migration 0007.
@@ -139,16 +138,7 @@ CREATE TABLE client_wallets (
 -- the count trigger, lifecycle, history and consent guards). The link to the routing audit (`routing_run_id`) is 0005.
 -- ---------------------------------------------------------------------------------------------------
 
-CREATE TABLE assignment_contact_attempts (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  assignment_id uuid NOT NULL REFERENCES lead_assignments (id),
-  outcome       contact_outcome NOT NULL,
-  note          text CHECK (char_length(note) <= 1000),
-  job_value_pence integer CHECK (job_value_pence >= 0),     -- client-reported, for client ROI and lead-quality scoring
-  occurred_at   timestamptz NOT NULL DEFAULT now(),
-  created_by    uuid REFERENCES client_users (id)
-);
-CREATE INDEX contact_attempts_idx ON assignment_contact_attempts (assignment_id, occurred_at);
+-- assignment_contact_attempts is migration 0008 (stage 6, slice 2); clients.max_open_leads too.
 
 -- ---------------------------------------------------------------------------------------------------
 -- Disputes, ledger and charges: money can never go wrong silently

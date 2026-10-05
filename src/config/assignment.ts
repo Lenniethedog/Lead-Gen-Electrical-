@@ -15,6 +15,20 @@ export const CANCEL_REASONS = {
 export type CancelReason = keyof typeof CANCEL_REASONS;
 export const CANCEL_REASON_CODES = Object.keys(CANCEL_REASONS) as CancelReason[];
 
+/**
+ * Why a business declines a lead it was given (chosen on the dashboard). Also a closed list: it is stored with the assignment and in
+ * history. A decline always sends the lead on to a DIFFERENT business (the router never offers it back); the reasons exist to measure
+ * why leads are declined (coverage that is too wide, capacity, wrong kind of work), not to change what happens next.
+ */
+export const CLIENT_DECLINE_REASONS = {
+  wrong_area: "It is outside the area I cover",
+  too_busy: "I am too busy to take it on",
+  not_my_work: "It is not the kind of work I do",
+  other: "Another reason",
+} as const;
+export type ClientDeclineReason = keyof typeof CLIENT_DECLINE_REASONS;
+export const CLIENT_DECLINE_REASON_CODES = Object.keys(CLIENT_DECLINE_REASONS) as ClientDeclineReason[];
+
 /** Reasons the SYSTEM records itself (never chosen from a form). */
 export const SYSTEM_REASONS = {
   manual_assignment: "Assigned by an operator",
@@ -23,6 +37,7 @@ export const SYSTEM_REASONS = {
   consent_withdrawn: "The consumer withdrew consent",
   erasure_request: "The consumer asked for their data to be erased",
   auto_routed: "Routed automatically",
+  accepted_by_business: "The business accepted it",
   routing_no_candidates: "No business could take it",
   routing_stopped: "Routing declined to handle it",
   delivered_automatically: "Delivered to the business automatically",

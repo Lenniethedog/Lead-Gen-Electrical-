@@ -37,7 +37,7 @@ describe("every dashboard entry point authenticates through the data-access laye
         "signin/page.tsx", "signin/actions.ts",
         "(app)/layout.tsx", "(app)/page.tsx", "(app)/actions.ts",
         "(app)/history/page.tsx",
-        "(app)/leads/[id]/page.tsx",
+        "(app)/leads/[id]/page.tsx", "(app)/leads/[id]/actions.ts",
       ].sort(),
     );
     expect(portalFunctions.length).toBeGreaterThanOrEqual(3);
@@ -47,7 +47,7 @@ describe("every dashboard entry point authenticates through the data-access laye
     "%s calls an authenticating function",
     (_name, file) => {
       const source = read(file);
-      const calls = [...portalFunctions, "signOutOfDashboard", "requireClientSession"];
+      const calls = [...portalFunctions, "signOutOfDashboard", "requireClientSession", "acceptLeadFromForm", "declineLeadFromForm", "logContactFromForm"];
       expect(calls.some((fn) => new RegExp(`\\b${fn}\\(`).test(source))).toBe(true);
     },
   );

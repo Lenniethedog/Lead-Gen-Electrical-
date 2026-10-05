@@ -2,6 +2,7 @@ import { sql } from "kysely";
 import { HELD_STATUSES } from "@/config/client-dashboard";
 import type { Database } from "@/lib/db/client";
 import type { UrgencyLevel } from "@/lib/db/schema";
+import type { ContactOutcome } from "@/config/client-dashboard";
 
 /**
  * All SQL for what a business sees (stage 6). Every function takes a database handle that is ALREADY scoped to one business
@@ -65,9 +66,20 @@ export interface LeadDetailRow {
   contact: { name: string; phone: string; email: string; notes: string | null } | null;
   /** Why there is no contact: it is not (or no longer) theirs, or the person has asked for it to be erased. */
   contactState: "visible" | "not_held" | "erased";
+  /** What they did with it, newest first. */
+  attempts: ContactAttemptRow[];
 }
 
-export async function getLeadDetail(db: Database, clientId: string, assignmentId: string): Promise<LeadDetailRow | undefined> {
+export interface ContactAttemptRow {
+  id: string;
+  outcome: ContactOutcome;
+  note: string | null;
+  jobValuePence: number | null;
+  occurredAt: Date;
+  by: string | null;
+}
+
+export async function getLeadDetail(db: Database, clientId: string, assignmentId: string): Promise<Omit<LeadDetailRow, "attempts"> | undefined> {
   const { rows } = await sql<{
     assignment_id: string; reference: string; service_label: string; urgency: UrgencyLevel; property_type: string; ownership: string; details: { scope?: string } | null;
     district: string; postcode: string | null; status: AssignmentStatusName; created_at: Date; notified_at: Date | null; lead_erased: boolean;
@@ -94,4 +106,27 @@ export async function getLeadDetail(db: Database, clientId: string, assignmentId
     contact: hasDetails ? { name: row.full_name!, phone: row.phone_e164!, email: row.email!, notes: row.notes } : null,
     contactState: hasDetails ? "visible" : erased ? "erased" : "not_held",
   };
+}
+
+
+export async function listContactAttempts(db: Database, clientId: string, assignmentId: string): Promise<ContactAttemptRow[]> {
+  const { rows } = await sql<{ id: string; outcome: ContactOutcome; note: string | null; job_value_pence: number | null; occurred_at: Date; by: string | null }>`
+    select t.id, t.outcome, t.note, t.job_value_pence, t.occurred_at, u.name as by
+      from assignment_contact_attempts t
+      join lead_assignments a on a.id = t.assignment_id
+      left join client_users u on u.id = t.created_by
+     where t.assignment_id = ${assignmentId} and a.client_id = ${clientId}
+     order by t.occurred_at desc, t.id desc`.execute(db);
+  return rows.map((r) => ({ id: r.id, outcome: r.outcome, note: r.note, jobValuePence: r.job_value_pence, occurredAt: r.occurred_at, by: r.by }));
+}
+
+/** What state the business's own assignment is in, locked, so the answer to "may it log a call?" cannot change under us. */
+export async function lockOwnAssignmentStatus(db: Database, clientId: string, assignmentId: string): Promise<AssignmentStatusName | undefined> {
+  const { rows } = await sql<{ status: AssignmentStatusName }>`select status from lead_assignments where id = ${assignmentId} and client_id = ${clientId} for update`.execute(db);
+  return rows[0]?.status;
+}
+
+export async function insertContactAttempt(db: Database, input: { assignmentId: string; outcome: ContactOutcome; note: string | null; jobValuePence: number | null; createdBy: string }): Promise<void> {
+  await sql`insert into assignment_contact_attempts (assignment_id, outcome, note, job_value_pence, created_by)
+            values (${input.assignmentId}, ${input.outcome}::contact_outcome, ${input.note}, ${input.jobValuePence}, ${input.createdBy})`.execute(db);
 }

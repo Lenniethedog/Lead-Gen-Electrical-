@@ -3,14 +3,14 @@ import { parsePause, parseRoutingPreferences, parseWorkingHours } from "./routin
 
 describe("routing preferences", () => {
   it("accepts a normal setting, and empty caps mean no limit", () => {
-    expect(parseRoutingPreferences({ priority: "100", weight: "1", dailyLeadCap: "", monthlyLeadCap: "" })).toEqual({ ok: true, value: { priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null } });
-    expect(parseRoutingPreferences({ priority: "0", weight: "0", dailyLeadCap: "5", monthlyLeadCap: "60" })).toEqual({ ok: true, value: { priority: 0, weight: 0, dailyLeadCap: 5, monthlyLeadCap: 60 } });
+    expect(parseRoutingPreferences({ priority: "100", weight: "1", dailyLeadCap: "", monthlyLeadCap: "" })).toEqual({ ok: true, value: { priority: 100, weight: 1, dailyLeadCap: null, monthlyLeadCap: null, maxOpenLeads: null } });
+    expect(parseRoutingPreferences({ priority: "0", weight: "0", dailyLeadCap: "5", monthlyLeadCap: "60", maxOpenLeads: "3" })).toEqual({ ok: true, value: { priority: 0, weight: 0, dailyLeadCap: 5, monthlyLeadCap: 60, maxOpenLeads: 3 } });
   });
 
   it("names every problem at once", () => {
-    const result = parseRoutingPreferences({ priority: "-1", weight: "101", dailyLeadCap: "0", monthlyLeadCap: "abc" });
+    const result = parseRoutingPreferences({ priority: "-1", weight: "101", dailyLeadCap: "0", monthlyLeadCap: "abc", maxOpenLeads: "101" });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(Object.keys(result.errors).sort()).toEqual(["dailyLeadCap", "monthlyLeadCap", "priority", "weight"]);
+    if (!result.ok) expect(Object.keys(result.errors).sort()).toEqual(["dailyLeadCap", "maxOpenLeads", "monthlyLeadCap", "priority", "weight"]);
   });
 
   it("rejects fractions, exponents, signs and absurd sizes", () => {

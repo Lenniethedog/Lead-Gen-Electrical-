@@ -36,9 +36,12 @@ export interface ClientFacts {
   pausedUntil: Date | null;
   /** The business has held THIS lead before (and gave it back): it does not get it again. */
   previouslyHeld: boolean;
+  /** The most leads it wants to hold unanswered at once (null = no limit), and how many it holds unanswered now (reserved or notified). */
+  maxOpenLeads: number | null;
+  openUnanswered: number;
 }
 
-export type ExclusionCode = "manual_only" | "previously_held" | "paused" | "outside_working_hours" | "daily_cap_reached" | "monthly_cap_reached";
+export type ExclusionCode = "manual_only" | "previously_held" | "paused" | "outside_working_hours" | "daily_cap_reached" | "monthly_cap_reached" | "max_open_leads_reached";
 
 export const EXCLUSION_TEXT: Record<ExclusionCode, string> = {
   manual_only: "Set to manual only (weight 0): never routed automatically",
@@ -47,6 +50,7 @@ export const EXCLUSION_TEXT: Record<ExclusionCode, string> = {
   outside_working_hours: "Outside its working hours",
   daily_cap_reached: "Reached its daily lead cap",
   monthly_cap_reached: "Reached its monthly lead cap",
+  max_open_leads_reached: "Already holds as many unanswered leads as it asked for",
 };
 
 export interface ClientVerdict {
@@ -107,6 +111,12 @@ export function evaluateClient(rules: CompiledRules, facts: ClientFacts): Client
     excludedBy.push("monthly_cap_reached");
     detail.monthlyCap = facts.monthlyCap;
     detail.assignedThisMonth = facts.assignedThisMonth;
+  }
+  // Not a rule: a business that asked to hold at most N unanswered leads is never given an (N+1)th, whatever the rules say.
+  if (facts.maxOpenLeads !== null && facts.openUnanswered >= facts.maxOpenLeads) {
+    excludedBy.push("max_open_leads_reached");
+    detail.maxOpenLeads = facts.maxOpenLeads;
+    detail.openUnanswered = facts.openUnanswered;
   }
   return { clientId: facts.clientId, name: facts.name, eligible: excludedBy.length === 0, excludedBy, detail };
 }

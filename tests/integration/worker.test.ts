@@ -11,7 +11,7 @@ import { createWorker, type Worker } from "../../src/workers/worker";
 import { buildAlertService, ScriptedSender } from "../helpers/alerts";
 import { createTestDatabase, type TestDatabase } from "../helpers/db";
 import { buildLeadService, command, validSubmission } from "../helpers/fixtures";
-import { insertRawLead } from "../helpers/raw";
+import { insertRawClient, insertRawLead } from "../helpers/raw";
 import { buildStage3 } from "../helpers/stage3";
 
 /**
@@ -46,7 +46,7 @@ const noListener = (): Listener => ({ start: async () => undefined, stop: async 
 
 function startWorker(
   sender: ScriptedSender,
-  options: { pollMs?: number; reconcileMs?: number; listen?: boolean; graceSeconds?: number; shutdownGraceMs?: number; workerId?: string } = {},
+  options: { pollMs?: number; reconcileMs?: number; listen?: boolean; graceSeconds?: number; shutdownGraceMs?: number; workerId?: string; housekeeping?: Array<{ name: string; run: () => Promise<unknown> }>; housekeepingEveryMs?: number } = {},
 ) {
   const worker = createWorker({
     db: t.db,
@@ -56,6 +56,8 @@ function startWorker(
     pollMs: options.pollMs ?? 60_000,
     reconcileMs: options.reconcileMs ?? 60_000,
     shutdownGraceMs: options.shutdownGraceMs ?? 5_000,
+    ...(options.housekeeping && { housekeeping: options.housekeeping }),
+    ...(options.housekeepingEveryMs !== undefined && { housekeepingEveryMs: options.housekeepingEveryMs }),
     createListener: (onWake) =>
       options.listen === false
         ? noListener()
@@ -460,5 +462,41 @@ describe("delivery in the worker (stage 5)", () => {
     await waitFor(async () => (await status(quick.assignmentId)) === "notified", 4_000); // the batch runs in parallel: the hung call does not hold it up
     release();
     await waitFor(async () => (await status(slow.assignmentId)) === "notified", 3_000);
+  });
+});
+
+describe("housekeeping", () => {
+  it("runs at start-up and then on its own schedule; one task failing never stops the others", async () => {
+    let good = 0;
+    let bad = 0;
+    const worker = startWorker(new ScriptedSender(), {
+      reconcileMs: 250,
+      housekeepingEveryMs: 400,
+      housekeeping: [
+        { name: "fails", run: async () => { bad += 1; throw new Error("boom"); } },
+        { name: "works", run: async () => { good += 1; } },
+      ],
+    });
+    await worker.start();
+    expect(good).toBe(1); // at start-up, not after an hour
+    expect(bad).toBe(1);
+    await new Promise((resolve) => setTimeout(resolve, 1_200));
+    expect(good).toBeGreaterThanOrEqual(2);
+    expect(good).toBe(bad);
+    await worker.stop();
+  });
+
+  it("clears out old business sign-in links and sessions, and nothing recent", async () => {
+    const { cleanUpClientCredentials } = await import("../../src/modules/clientauth");
+    const client = await insertRawClient(t.admin);
+    const user = await t.admin.insertInto("client_users").values({ client_id: client.id, email: `hk-${next()}@x.example`, name: "H" }).returning("id").executeTakeFirstOrThrow();
+    const hash = () => Buffer.from(crypto.getRandomValues(new Uint8Array(32)));
+    await sql`insert into client_login_tokens (user_id, token_hash, created_at, expires_at) values (${user.id}, ${hash()}, now() - interval '20 days', now() - interval '19 days'), (${user.id}, ${hash()}, now(), now() + interval '15 minutes')`.execute(t.admin);
+    await sql`insert into client_sessions (user_id, token_hash, created_at, expires_at, last_seen_at) values (${user.id}, ${hash()}, now() - interval '30 days', now() - interval '16 days', now() - interval '16 days'), (${user.id}, ${hash()}, now(), now() + interval '14 days', now())`.execute(t.admin);
+    const cleared = await cleanUpClientCredentials(t.db);
+    expect(cleared.links).toBeGreaterThanOrEqual(1);
+    expect(cleared.sessions).toBeGreaterThanOrEqual(1);
+    const left = await sql<{ n: string }>`select (select count(*) from client_login_tokens where user_id = ${user.id}) + (select count(*) from client_sessions where user_id = ${user.id}) as n`.execute(t.admin);
+    expect(Number(left.rows[0]!.n)).toBe(2); // the recent link and the live session
   });
 });

@@ -113,11 +113,14 @@ export async function insertAssignment(
 /** A timeline entry for the lead, made by a person. Ids and codes only: never personal data. */
 export async function insertLeadEvent(
   db: Database,
-  input: { leadId: string; type: string; operatorId: string; requestId: string; payload: Record<string, unknown> },
+  input: { leadId: string; type: string; requestId: string; payload: Record<string, unknown> } & ({ operatorId: string; clientUserId?: undefined } | { clientUserId: string; operatorId?: undefined }),
 ): Promise<void> {
   await db
     .insertInto("lead_events")
-    .values({ lead_id: input.leadId, type: input.type, actor_type: "staff_user", actor_id: input.operatorId, request_id: input.requestId, payload: JSON.stringify(input.payload) })
+    .values({
+      lead_id: input.leadId, type: input.type, actor_type: input.clientUserId ? "client_user" : "staff_user", actor_id: input.clientUserId ?? input.operatorId,
+      request_id: input.requestId, payload: JSON.stringify(input.payload),
+    })
     .execute();
 }
 
@@ -149,10 +152,16 @@ export async function transitionAssignment(
   id: string,
   from: AssignmentStatus,
   to: AssignmentStatus,
+  options: { rejectionReason?: string } = {},
 ): Promise<boolean> {
   const row = await db
     .updateTable("lead_assignments")
-    .set({ status: to, ...(to === "notified" && { notified_at: sql<Date>`now()` }) })
+    .set({
+      status: to,
+      ...(to === "notified" && { notified_at: sql<Date>`now()` }),
+      ...(to === "accepted" && { accepted_at: sql<Date>`now()` }),
+      ...(to === "rejected" && { rejected_at: sql<Date>`now()`, rejection_reason: options.rejectionReason ?? null }),
+    })
     .where("id", "=", id)
     .where("status", "=", from)
     .returning("id")

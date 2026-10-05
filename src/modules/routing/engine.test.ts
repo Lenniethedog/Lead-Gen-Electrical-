@@ -10,7 +10,7 @@ const withRules = (overrides: Partial<CompiledRules>): CompiledRules => ({ ...AL
 const MONDAY_NOON = { localWeekday: 1, localMinutes: 12 * 60 };
 const facts = (id: string, overrides: Partial<ClientFacts> = {}): ClientFacts => ({
   clientId: id, name: `Client ${id}`, priority: 100, weight: 1, dailyCap: null, monthlyCap: null,
-  assignedToday: 0, assignedThisMonth: 0, assignedInWindow: 0, lastAssignedAt: null, hours: [], pausedUntil: null, previouslyHeld: false,
+  assignedToday: 0, assignedThisMonth: 0, assignedInWindow: 0, lastAssignedAt: null, hours: [], pausedUntil: null, previouslyHeld: false, maxOpenLeads: null, openUnanswered: 0,
   ...MONDAY_NOON, ...overrides,
 });
 const weekdayHours = (opens: number, closes: number): WorkingWindow[] => [1, 2, 3, 4, 5].map((weekday) => ({ weekday, opensMinutes: opens, closesMinutes: closes }));
@@ -160,6 +160,7 @@ function randomFacts(random: () => number, id: string): ClientFacts {
     hours: random() < 0.5 ? [] : weekdayHours(int(random, 6, 9) * 60, int(random, 15, 19) * 60),
     localWeekday: int(random, 0, 6), localMinutes: int(random, 0, 1439),
     pausedUntil: random() < 0.15 ? new Date(1_770_000_000_000) : null, previouslyHeld: random() < 0.15,
+    maxOpenLeads: random() < 0.6 ? null : int(random, 1, 4), openUnanswered: int(random, 0, 5),
   };
 }
 
@@ -210,13 +211,32 @@ describe("properties of the decision (2,000 generated situations)", () => {
     }
   });
 
-  it("a paused, manual-only or already-had-it business is never eligible, whatever the rules", () => {
+  it("a paused, manual-only, already-had-it or full-of-unanswered-leads business is never eligible, whatever the rules", () => {
     for (const { seed, rules, clients } of cases) {
       for (const client of clients) {
         const verdict = evaluateClient(rules, client);
-        if (client.pausedUntil || client.weight === 0 || client.previouslyHeld) expect(verdict.eligible, `seed ${seed}`).toBe(false);
+        const full = client.maxOpenLeads !== null && client.openUnanswered >= client.maxOpenLeads;
+        if (client.pausedUntil || client.weight === 0 || client.previouslyHeld || full) expect(verdict.eligible, `seed ${seed}`).toBe(false);
       }
     }
+  });
+});
+
+describe("most unanswered leads (max_open_leads)", () => {
+  it("is not a rule: it holds even with every rule switched off", () => {
+    const bare = withRules({ dailyCap: false, monthlyCap: false, workingHours: undefined, rankers: [] });
+    expect(evaluateClient(bare, facts("a", { maxOpenLeads: 2, openUnanswered: 2 }))).toMatchObject({ eligible: false, excludedBy: ["max_open_leads_reached"], detail: { maxOpenLeads: 2, openUnanswered: 2 } });
+    expect(evaluateClient(bare, facts("a", { maxOpenLeads: 2, openUnanswered: 5 })).eligible).toBe(false);
+  });
+
+  it("lets a business with room, or with no limit, through", () => {
+    expect(evaluateClient(ALL_ON, facts("a", { maxOpenLeads: 3, openUnanswered: 2 })).eligible).toBe(true);
+    expect(evaluateClient(ALL_ON, facts("a", { maxOpenLeads: null, openUnanswered: 99 })).eligible).toBe(true);
+  });
+
+  it("sends the lead to the next business instead", () => {
+    const decision = decide(ALL_ON, [facts("a", { maxOpenLeads: 1, openUnanswered: 1, priority: 1 }), facts("b", { priority: 50 })]);
+    expect(decision.ranking).toEqual(["b"]);
   });
 });
 

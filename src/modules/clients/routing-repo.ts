@@ -12,22 +12,23 @@ export interface RoutingPreferences {
   weight: number;
   dailyLeadCap: number | null;
   monthlyLeadCap: number | null;
+  maxOpenLeads: number | null;
 }
 
 export async function getRoutingPreferences(db: Database, clientId: string): Promise<RoutingPreferences | undefined> {
   const row = await db
     .selectFrom("clients")
-    .select(["id", "timezone", "priority", "weight", "daily_lead_cap", "monthly_lead_cap"])
+    .select(["id", "timezone", "priority", "weight", "daily_lead_cap", "monthly_lead_cap", "max_open_leads"])
     .where("id", "=", clientId)
     .where("deleted_at", "is", null)
     .executeTakeFirst();
-  return row && { clientId: row.id, timezone: row.timezone, priority: row.priority, weight: row.weight, dailyLeadCap: row.daily_lead_cap, monthlyLeadCap: row.monthly_lead_cap };
+  return row && { clientId: row.id, timezone: row.timezone, priority: row.priority, weight: row.weight, dailyLeadCap: row.daily_lead_cap, monthlyLeadCap: row.monthly_lead_cap, maxOpenLeads: row.max_open_leads };
 }
 
 export async function updateRoutingPreferences(db: Database, clientId: string, input: RoutingPreferencesInput): Promise<void> {
   await db
     .updateTable("clients")
-    .set({ priority: input.priority, weight: input.weight, daily_lead_cap: input.dailyLeadCap, monthly_lead_cap: input.monthlyLeadCap })
+    .set({ priority: input.priority, weight: input.weight, daily_lead_cap: input.dailyLeadCap, monthly_lead_cap: input.monthlyLeadCap, max_open_leads: input.maxOpenLeads })
     .where("id", "=", clientId)
     .execute();
 }

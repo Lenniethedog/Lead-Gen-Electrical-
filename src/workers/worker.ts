@@ -37,6 +37,10 @@ export interface WorkerDeps {
   shutdownGraceMs?: number;
   /** Most leads routed before the loop lets other work run (a burst is drained in several passes). */
   routingBatch?: number;
+  /** Slow, idempotent upkeep (clearing out spent credentials, checking the money adds up). Each task runs on its own: one failing never stops the others. */
+  housekeeping?: ReadonlyArray<{ name: string; run: () => Promise<unknown> }>;
+  /** How often the housekeeping tasks run (default hourly; the first run is at start-up). */
+  housekeepingEveryMs?: number;
 }
 
 export interface Worker {
@@ -65,6 +69,7 @@ export function createWorker(deps: WorkerDeps): Worker {
   let pollTimer: NodeJS.Timeout | undefined;
   let reconcileTimer: NodeJS.Timeout | undefined;
   let lastPrune = 0;
+  let lastHousekeeping = 0;
   /** The reconcile pass that is running now, if any: stop() waits for it so its heartbeat cannot be written after the heartbeat is removed. */
   let reconciling: Promise<void> | undefined;
   let listener: Listener | undefined;
@@ -146,6 +151,17 @@ export function createWorker(deps: WorkerDeps): Worker {
       if (Date.now() - lastPrune > 3_600_000) {
         lastPrune = Date.now();
         await pruneHeartbeats(db);
+      }
+      if (deps.housekeeping && Date.now() - lastHousekeeping >= (deps.housekeepingEveryMs ?? 3_600_000)) {
+        lastHousekeeping = Date.now();
+        for (const task of deps.housekeeping) {
+          if (stopping) break;
+          try {
+            await task.run();
+          } catch (error) {
+            logger.error({ err: error, task: task.name }, "housekeeping task failed; it will be tried again next time");
+          }
+        }
       }
     } catch (error) {
       logger.error({ err: error }, "reconcile tick failed; will retry");

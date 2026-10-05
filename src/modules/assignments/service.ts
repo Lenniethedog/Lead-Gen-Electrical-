@@ -1,7 +1,7 @@
 import type { Logger } from "pino";
-import { CANCEL_REASON_CODES, STOP_ROUTING_REASONS } from "@/config/assignment";
+import { CANCEL_REASON_CODES, CLIENT_DECLINE_REASON_CODES, STOP_ROUTING_REASONS } from "@/config/assignment";
 import { LEAD_EVENT } from "@/config/lead-events";
-import { setStaffContext } from "@/lib/db/audit-context";
+import { setClientContext, setStaffContext } from "@/lib/db/audit-context";
 import type { Database } from "@/lib/db/client";
 import { writeAudit } from "@/modules/audit";
 import { explainCoverage, type ClientVerdict, type NotEligibleReason } from "@/modules/coverage";
@@ -41,7 +41,8 @@ export type AssignmentFailure =
   | "invalid_reason"
   | "same_client"
   | "not_cancellable"
-  | "not_notifiable";
+  | "not_notifiable"
+  | "not_open";
 
 export interface AssignmentFailureResult {
   ok: false;
@@ -271,6 +272,56 @@ export function createAssignmentService(deps: AssignmentServiceDeps) {
             requestId: input.requestId,
           });
           return { ok: true, assignmentId, pricePence: admitted.pricePence, outsideCoverage: admitted.outsideCoverage };
+        }),
+      );
+    },
+
+    /**
+     * A signed-in person at a business accepts a lead it holds. Idempotent (a second tap is not an error). Business and person come
+     * from the verified session, never from the browser; a lead that is another business's is `not_found`, exactly like one that does
+     * not exist. An unanswered lead still `reserved` (nobody has pressed "I've sent it") moves through `notified` first: they have seen it.
+     */
+    async acceptByBusiness(input: { clientId: string; clientUserId: string; assignmentId: string; requestId: string }): Promise<AssignmentResult<{ alreadyAccepted: boolean }>> {
+      const peek = await db.selectFrom("lead_assignments").select(["lead_id", "client_id"]).where("id", "=", input.assignmentId).executeTakeFirst();
+      if (!peek || peek.client_id !== input.clientId) return { ok: false, code: "not_found" };
+      return guarded(() =>
+        db.transaction().execute(async (trx): Promise<AssignmentResult<{ alreadyAccepted: boolean }>> => {
+          const lead = await lockLead(trx, peek.lead_id);
+          const assignment = await lockAssignment(trx, input.assignmentId);
+          if (!lead || !assignment || assignment.clientId !== input.clientId) return { ok: false, code: "not_found" };
+          if (assignment.status === "accepted") return { ok: true, alreadyAccepted: true };
+          if (assignment.status !== "reserved" && assignment.status !== "notified") return { ok: false, code: "not_open" };
+          await setClientContext(trx, { clientUserId: input.clientUserId, reason: "accepted_by_business", requestId: input.requestId });
+          if (assignment.status === "reserved" && !(await transitionAssignment(trx, assignment.id, "reserved", "notified"))) return { ok: false, code: "not_open" };
+          if (!(await transitionAssignment(trx, assignment.id, "notified", "accepted"))) return { ok: false, code: "not_open" };
+          await writeAudit(trx, { actorType: "client_user", actorId: input.clientUserId, action: "assignment.accepted", entityType: "lead", entityId: lead.id, after: { assignment_id: assignment.id, client_id: input.clientId }, requestId: input.requestId });
+          return { ok: true, alreadyAccepted: false };
+        }),
+      );
+    },
+
+    /**
+     * A signed-in person at a business declines a lead it has not accepted. The reason is from a closed list. The assignment ends, the
+     * lead is free again and the router offers it to a DIFFERENT business (this one "previously held" it). Taking a lead back AFTER
+     * accepting is staff's job (cancel), not the business's.
+     */
+    async declineByBusiness(input: { clientId: string; clientUserId: string; assignmentId: string; reason: string; requestId: string }): Promise<AssignmentResult> {
+      if (!(CLIENT_DECLINE_REASON_CODES as readonly string[]).includes(input.reason)) return { ok: false, code: "invalid_reason" };
+      const peek = await db.selectFrom("lead_assignments").select(["lead_id", "client_id"]).where("id", "=", input.assignmentId).executeTakeFirst();
+      if (!peek || peek.client_id !== input.clientId) return { ok: false, code: "not_found" };
+      return guarded(() =>
+        db.transaction().execute(async (trx): Promise<AssignmentResult> => {
+          const lead = await lockLead(trx, peek.lead_id);
+          const assignment = await lockAssignment(trx, input.assignmentId);
+          if (!lead || !assignment || assignment.clientId !== input.clientId) return { ok: false, code: "not_found" };
+          if (assignment.status !== "reserved" && assignment.status !== "notified") return { ok: false, code: "not_open" };
+          await setClientContext(trx, { clientUserId: input.clientUserId, reason: input.reason, requestId: input.requestId });
+          if (assignment.status === "reserved" && !(await transitionAssignment(trx, assignment.id, "reserved", "notified"))) return { ok: false, code: "not_open" };
+          if (!(await transitionAssignment(trx, assignment.id, "notified", "rejected", { rejectionReason: input.reason }))) return { ok: false, code: "not_open" };
+          if ((await activeAssignmentsForLead(trx, lead.id)).length === 0 && lead.status === "assigned") await transitionLead(trx, lead.id, "assigned", "new");
+          await insertLeadEvent(trx, { leadId: lead.id, type: LEAD_EVENT.declinedByBusiness, clientUserId: input.clientUserId, requestId: input.requestId, payload: { assignment_id: assignment.id, client_id: input.clientId, reason: input.reason } });
+          await writeAudit(trx, { actorType: "client_user", actorId: input.clientUserId, action: "assignment.declined", entityType: "lead", entityId: lead.id, reason: input.reason, before: { assignment_id: assignment.id, status: assignment.status }, requestId: input.requestId });
+          return { ok: true };
         }),
       );
     },
