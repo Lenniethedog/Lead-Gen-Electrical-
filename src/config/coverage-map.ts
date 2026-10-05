@@ -5,37 +5,44 @@
  * db/seeds/service-areas.ts) and the postcode checker is the authority. `coverage-map.test.ts` fails if this list and the seed drift apart.
  * Add a town here when you add it to the seed, then rebuild the picture if the view needs to grow (`npm run map:build`).
  */
-export interface CoverageCircle {
+export type LabelSide = "t" | "b" | "l" | "r";
+
+export interface CoveragePoint {
   lat: number;
   lng: number;
-  /** How far the area reaches from that point, in kilometres: a guide for the eye, not a boundary. */
-  radiusKm: number;
+  /** The name written beside the dot. Defaults to the area's name; an area spread over two towns (Swanley and Sevenoaks) names each dot. */
+  label?: string;
+  /** Which side of the dot the name sits on (top, bottom, left, right), chosen so no name lands on another name or dot. A test proves it. */
+  side: LabelSide;
 }
 
 export interface CoverageMapArea {
   slug: string;
   name: string;
   districts: readonly string[];
-  /** One circle for most areas; an area that is long and thin (Swanley to Sevenoaks) uses two. */
-  circles: readonly CoverageCircle[];
-  /** Where on the circle's edge its number sits, in degrees clockwise from east (270 = top). Keeps the number off the town's name and out of its neighbours. */
-  badgeAngle?: number;
+  /** One dot for most areas; an area that is spread over two towns has two. */
+  points: readonly CoveragePoint[];
 }
 
 export const COVERAGE_MAP_AREAS: readonly CoverageMapArea[] = [
-  { slug: "bromley", name: "Bromley", districts: ["BR1", "BR2", "BR3", "BR4", "BR7"], circles: [{ lat: 51.4060, lng: 0.0144, radiusKm: 3.4 }], badgeAngle: 135 },
-  { slug: "orpington", name: "Orpington", districts: ["BR5", "BR6"], circles: [{ lat: 51.3740, lng: 0.0990, radiusKm: 3.6 }], badgeAngle: 90 },
-  { slug: "bexley", name: "Bexley", districts: ["DA5"], circles: [{ lat: 51.4412, lng: 0.1488, radiusKm: 1.6 }], badgeAngle: 20 },
-  { slug: "bexleyheath", name: "Bexleyheath", districts: ["DA6", "DA7"], circles: [{ lat: 51.4600, lng: 0.1420, radiusKm: 1.9 }], badgeAngle: 300 },
-  { slug: "sidcup", name: "Sidcup", districts: ["DA14", "DA15"], circles: [{ lat: 51.4260, lng: 0.1060, radiusKm: 2.3 }], badgeAngle: 200 },
-  { slug: "welling", name: "Welling", districts: ["DA16"], circles: [{ lat: 51.4640, lng: 0.1020, radiusKm: 1.6 }], badgeAngle: 270 },
-  { slug: "erith", name: "Erith and Belvedere", districts: ["DA8", "DA17", "DA18"], circles: [{ lat: 51.4830, lng: 0.1780, radiusKm: 2.6 }], badgeAngle: 270 },
-  { slug: "eltham", name: "Eltham", districts: ["SE9"], circles: [{ lat: 51.4510, lng: 0.0530, radiusKm: 2.2 }], badgeAngle: 270 },
-  { slug: "catford", name: "Catford and Lee", districts: ["SE6", "SE12"], circles: [{ lat: 51.4430, lng: -0.0100, radiusKm: 2.8 }], badgeAngle: 270 },
-  { slug: "penge", name: "Penge and Sydenham", districts: ["SE20", "SE26"], circles: [{ lat: 51.4200, lng: -0.0500, radiusKm: 3.0 }], badgeAngle: 200 },
-  { slug: "dartford", name: "Dartford", districts: ["DA1", "DA2", "DA3", "DA9", "DA10"], circles: [{ lat: 51.4460, lng: 0.2170, radiusKm: 4.0 }], badgeAngle: 40 },
-  { slug: "gravesend", name: "Gravesend", districts: ["DA11", "DA12", "DA13"], circles: [{ lat: 51.4410, lng: 0.3690, radiusKm: 4.0 }], badgeAngle: 270 },
-  { slug: "sevenoaks", name: "Sevenoaks and Swanley", districts: ["BR8", "DA4", "TN13", "TN14", "TN15"], circles: [{ lat: 51.3930, lng: 0.1700, radiusKm: 2.8 }, { lat: 51.2720, lng: 0.1910, radiusKm: 4.4 }], badgeAngle: 90 },
+  { slug: "bromley", name: "Bromley", districts: ["BR1", "BR2", "BR3", "BR4", "BR7"], points: [{ lat: 51.4060, lng: 0.0144, side: "r" }] },
+  { slug: "orpington", name: "Orpington", districts: ["BR5", "BR6"], points: [{ lat: 51.3740, lng: 0.0990, side: "r" }] },
+  { slug: "bexley", name: "Bexley", districts: ["DA5"], points: [{ lat: 51.4412, lng: 0.1488, side: "r" }] },
+  { slug: "bexleyheath", name: "Bexleyheath", districts: ["DA6", "DA7"], points: [{ lat: 51.4600, lng: 0.1420, side: "r" }] },
+  { slug: "sidcup", name: "Sidcup", districts: ["DA14", "DA15"], points: [{ lat: 51.4260, lng: 0.1060, side: "l" }] },
+  { slug: "welling", name: "Welling", districts: ["DA16"], points: [{ lat: 51.4640, lng: 0.1020, side: "t" }] },
+  { slug: "erith", name: "Erith and Belvedere", districts: ["DA8", "DA17", "DA18"], points: [{ lat: 51.4830, lng: 0.1780, side: "r" }] },
+  { slug: "eltham", name: "Eltham", districts: ["SE9"], points: [{ lat: 51.4510, lng: 0.0530, side: "t" }] },
+  { slug: "catford", name: "Catford and Lee", districts: ["SE6", "SE12"], points: [{ lat: 51.4430, lng: -0.0100, side: "t" }] },
+  { slug: "penge", name: "Penge and Sydenham", districts: ["SE20", "SE26"], points: [{ lat: 51.4200, lng: -0.0500, side: "b" }] },
+  { slug: "dartford", name: "Dartford", districts: ["DA1", "DA2", "DA3", "DA9", "DA10"], points: [{ lat: 51.4460, lng: 0.2170, side: "b" }] },
+  { slug: "gravesend", name: "Gravesend", districts: ["DA11", "DA12", "DA13"], points: [{ lat: 51.4410, lng: 0.3690, side: "b" }] },
+  {
+    slug: "sevenoaks",
+    name: "Sevenoaks and Swanley",
+    districts: ["BR8", "DA4", "TN13", "TN14", "TN15"],
+    points: [{ lat: 51.3930, lng: 0.1700, label: "Swanley", side: "r" }, { lat: 51.2720, lng: 0.1910, label: "Sevenoaks", side: "r" }],
+  },
 ];
 
 /**
@@ -50,7 +57,6 @@ const worldY = (lat: number, zoom: number) => {
   const rad = (lat * Math.PI) / 180;
   return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * 2 ** zoom * TILE;
 };
-const metresPerPixel = (lat: number, zoom: number) => (40_075_016.686 * Math.cos((lat * Math.PI) / 180)) / (2 ** zoom * TILE);
 
 /** The picture's size in pixels, and where its top-left corner is in world pixels. The map builder and the page both use exactly this. */
 export function mapGeometry(view: typeof MAP_VIEW = MAP_VIEW) {
@@ -59,22 +65,30 @@ export function mapGeometry(view: typeof MAP_VIEW = MAP_VIEW) {
   return { left, top, width: Math.round(worldX(view.east, view.zoom) - left), height: Math.round(worldY(view.south, view.zoom) - top) };
 }
 
-export interface ProjectedCircle { x: number; y: number; r: number }
-export interface ProjectedArea { area: CoverageMapArea; number: number; circles: ProjectedCircle[]; /** One number per circle, on its edge. */ badges: Array<{ x: number; y: number }> }
+export interface ProjectedPoint {
+  /** Pixels on the picture, and the same as percentages of its width and height (so an overlay scales with the picture). */
+  x: number;
+  y: number;
+  leftPct: number;
+  topPct: number;
+  label: string;
+  side: LabelSide;
+}
+export interface ProjectedArea { area: CoverageMapArea; points: ProjectedPoint[] }
 
 export function projectAreas(areas: readonly CoverageMapArea[] = COVERAGE_MAP_AREAS, view: typeof MAP_VIEW = MAP_VIEW): { width: number; height: number; areas: ProjectedArea[] } {
   const g = mapGeometry(view);
+  const round = (n: number) => Math.round(n * 100) / 100;
   return {
     width: g.width,
     height: g.height,
-    areas: areas.map((area, index) => {
-      const circles = area.circles.map((c) => ({
-        x: Math.round(worldX(c.lng, view.zoom) - g.left),
-        y: Math.round(worldY(c.lat, view.zoom) - g.top),
-        r: Math.round((c.radiusKm * 1000) / metresPerPixel(c.lat, view.zoom)),
-      }));
-      const angle = ((area.badgeAngle ?? 270) * Math.PI) / 180;
-      return { area, number: index + 1, circles, badges: circles.map((c) => ({ x: Math.round(c.x + c.r * Math.cos(angle)), y: Math.round(c.y + c.r * Math.sin(angle)) })) };
-    }),
+    areas: areas.map((area) => ({
+      area,
+      points: area.points.map((p) => {
+        const x = worldX(p.lng, view.zoom) - g.left;
+        const y = worldY(p.lat, view.zoom) - g.top;
+        return { x: Math.round(x), y: Math.round(y), leftPct: round((x / g.width) * 100), topPct: round((y / g.height) * 100), label: p.label ?? area.name, side: p.side };
+      }),
+    })),
   };
 }

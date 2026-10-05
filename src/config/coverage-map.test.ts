@@ -34,34 +34,93 @@ describe("coverage map", () => {
     const origin = world(MAP_VIEW.north, MAP_VIEW.west);
     const dartford = projectAreas().areas.find((a) => a.area.slug === "dartford")!;
     const expected = world(51.446, 0.217);
-    expect(dartford.circles[0]!.x).toBe(Math.round(expected.x - origin.x));
-    expect(dartford.circles[0]!.y).toBe(Math.round(expected.y - origin.y));
+    expect(dartford.points[0]!.x).toBe(Math.round(expected.x - origin.x));
+    expect(dartford.points[0]!.y).toBe(Math.round(expected.y - origin.y));
   });
 
-  it("draws a circle of the right size: 4 km is about 4000 / metres-per-pixel pixels", () => {
-    const dartford = projectAreas().areas.find((a) => a.area.slug === "dartford")!;
-    const metresPerPixel = (40_075_016.686 * Math.cos((51.446 * Math.PI) / 180)) / (2 ** MAP_VIEW.zoom * 256);
-    expect(dartford.circles[0]!.r).toBe(Math.round(4000 / metresPerPixel));
-    expect(dartford.circles[0]!.r).toBeGreaterThan(100);
-    expect(dartford.circles[0]!.r).toBeLessThan(250);
+  it("every area has a dot, and an area spread over two towns names each one", () => {
+    for (const area of COVERAGE_MAP_AREAS) expect(area.points.length, area.slug).toBeGreaterThan(0);
+    const sevenoaks = projectAreas().areas.find((a) => a.area.slug === "sevenoaks")!;
+    expect(sevenoaks.points.map((p) => p.label)).toEqual(["Swanley", "Sevenoaks"]);
+    const bexley = projectAreas().areas.find((a) => a.area.slug === "bexley")!;
+    expect(bexley.points.map((p) => p.label)).toEqual(["Bexley"]);
   });
 
-  it("keeps every circle wholly inside the picture, with west to the left and north at the top, and numbers them 1..n", () => {
+  it("keeps every dot inside the picture, with west to the left and north at the top; percentages agree with pixels", () => {
     const { width, height, areas } = projectAreas();
-    expect(areas.map((a) => a.number)).toEqual(areas.map((_, i) => i + 1));
-    for (const { area, circles } of areas) {
-      expect(circles.length, area.slug).toBeGreaterThan(0);
-      for (const c of circles) {
-        expect(c.x - c.r, `${area.slug} left`).toBeGreaterThanOrEqual(0);
-        expect(c.x + c.r, `${area.slug} right`).toBeLessThanOrEqual(width);
-        expect(c.y - c.r, `${area.slug} top`).toBeGreaterThanOrEqual(0);
-        expect(c.y + c.r, `${area.slug} bottom`).toBeLessThanOrEqual(height);
+    for (const { area, points } of areas) {
+      for (const p of points) {
+        expect(p.x, `${area.slug} x`).toBeGreaterThan(0);
+        expect(p.x, `${area.slug} x`).toBeLessThan(width);
+        expect(p.y, `${area.slug} y`).toBeGreaterThan(0);
+        expect(p.y, `${area.slug} y`).toBeLessThan(height);
+        expect(p.leftPct).toBeCloseTo((p.x / width) * 100, 0);
+        expect(p.topPct).toBeCloseTo((p.y / height) * 100, 0);
       }
     }
-    const at = (slug: string) => areas.find((a) => a.area.slug === slug)!.circles[0]!;
+    const at = (slug: string) => areas.find((a) => a.area.slug === slug)!.points[0]!;
     expect(at("penge").x).toBeLessThan(at("gravesend").x);
     expect(at("erith").y).toBeLessThan(at("orpington").y);
     expect(at("bexleyheath").y).toBeLessThan(at("bexley").y);
+  });
+
+  /**
+   * NO NAME LANDS ON ANOTHER NAME OR ON ANOTHER DOT, at the narrowest the map is ever drawn (720 px wide, a phone swiping sideways) and at desktop
+   * width. The label is 12 px bold; its width is estimated generously (7.4 px a letter). Dots are 14 px with a 2 px ring; the gap from dot to name is 8 px
+   * (left/right) or 6 px (above/below), as in the component.
+   */
+  for (const renderedWidth of [720, 800, 1100]) {
+    it(`never overlaps a name with another name or a dot, and never runs off the picture, at ${renderedWidth}px wide`, () => {
+      const { width, height, areas } = projectAreas();
+      const scale = renderedWidth / width;
+      const renderedHeight = height * scale;
+      const DOT = 9; // half of 14px + ring
+      const boxes: Array<{ id: string; kind: "label" | "dot"; x0: number; y0: number; x1: number; y1: number }> = [];
+      for (const { area, points } of areas) {
+        points.forEach((p, i) => {
+          const cx = p.x * scale;
+          const cy = p.y * scale;
+          const w = p.label.length * 7.4 + 2;
+          const h = 14;
+          const id = `${area.slug}#${i}`;
+          boxes.push({ id, kind: "dot", x0: cx - DOT, y0: cy - DOT, x1: cx + DOT, y1: cy + DOT });
+          const label =
+            p.side === "r" ? { x0: cx + 8, y0: cy - h / 2, x1: cx + 8 + w, y1: cy + h / 2 }
+            : p.side === "l" ? { x0: cx - 8 - w, y0: cy - h / 2, x1: cx - 8, y1: cy + h / 2 }
+            : p.side === "t" ? { x0: cx - w / 2, y0: cy - 6 - h - 2, x1: cx + w / 2, y1: cy - 8 }
+            : { x0: cx - w / 2, y0: cy + 8, x1: cx + w / 2, y1: cy + 8 + h + 2 };
+          boxes.push({ id, kind: "label", ...label });
+          expect(label.x0, `${id} label runs off the left edge`).toBeGreaterThanOrEqual(0);
+          expect(label.x1, `${id} label runs off the right edge`).toBeLessThanOrEqual(renderedWidth);
+          expect(label.y0, `${id} label runs off the top`).toBeGreaterThanOrEqual(0);
+          expect(label.y1, `${id} label runs off the bottom`).toBeLessThanOrEqual(renderedHeight);
+        });
+      }
+      const overlaps = (a: (typeof boxes)[number], b: (typeof boxes)[number]) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+      const clashes: string[] = [];
+      for (let i = 0; i < boxes.length; i += 1) {
+        for (let j = i + 1; j < boxes.length; j += 1) {
+          const a = boxes[i]!;
+          const b = boxes[j]!;
+          if (a.id === b.id) continue; // a dot and its own name sit side by side by design
+          if (a.kind === "dot" && b.kind === "dot") continue; // dots are far apart in every layout (checked below)
+          if (overlaps(a, b)) clashes.push(`${a.kind} ${a.id} / ${b.kind} ${b.id}`);
+        }
+      }
+      expect(clashes).toEqual([]);
+    });
+  }
+
+  it("no two dots are close enough to touch", () => {
+    const points = projectAreas().areas.flatMap(({ area, points }) => points.map((p, i) => ({ id: `${area.slug}#${i}`, ...p })));
+    const { width } = projectAreas();
+    const scale = 720 / width; // the narrowest the map is drawn
+    for (let i = 0; i < points.length; i += 1) {
+      for (let j = i + 1; j < points.length; j += 1) {
+        const distance = Math.hypot((points[i]!.x - points[j]!.x) * scale, (points[i]!.y - points[j]!.y) * scale);
+        expect(distance, `${points[i]!.id} / ${points[j]!.id}`).toBeGreaterThan(22);
+      }
+    }
   });
 
   it("the built picture is exactly the size the circles were drawn for (rebuild it with `npm run map:build` after changing the view)", async () => {

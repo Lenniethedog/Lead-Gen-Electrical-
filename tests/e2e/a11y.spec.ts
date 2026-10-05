@@ -25,6 +25,9 @@ test.describe("accessibility (WCAG 2.2 AA via axe)", () => {
     await expect(list.getByText("DA6, DA7")).toBeVisible();
     await expect(list.getByText("Sidcup", { exact: true })).toBeVisible();
     await expect(list.getByText("SE9")).toBeVisible();
+    // On the map itself: a dot for every area (Sevenoaks and Swanley have one each), each with its name beside it.
+    await expect(section.locator("[data-map-dot]")).toHaveCount(14);
+    for (const name of ["Bexley", "Bexleyheath", "Sidcup", "Eltham", "Swanley", "Sevenoaks", "Gravesend"]) await expect(section.getByText(name, { exact: true }).first()).toBeVisible();
     // The map is our own file: the page never asks a map provider for anything.
     const foreign = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => new URL(entry.name).origin).filter((origin) => origin !== location.origin && !origin.includes("challenges.cloudflare.com")));
     expect(foreign).toEqual([]);

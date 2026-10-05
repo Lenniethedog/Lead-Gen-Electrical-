@@ -4,18 +4,26 @@ import { Eyebrow } from "./Eyebrow";
 
 /**
  * Where we cover, on a real street map. The picture is built once from OpenStreetMap data (`npm run map:build`) and served from this site, so a
- * visitor's browser contacts no map provider (nothing about them leaves the site). The numbered circles are drawn over it from the same area list
- * the postcode checker uses (a test fails if the two drift apart). They show roughly where we cover, never a boundary: the postcode checker is the authority.
- * The numbered list beside the map is the accessible version of the same information.
+ * visitor's browser contacts no map provider (nothing about them leaves the site). A red dot marks each area, with its name beside it; the dots and
+ * names are drawn over the picture from the same area list the postcode checker uses (a test fails if the two drift apart, and another proves no name
+ * lands on another name or dot). They show roughly where we cover, never a boundary: the postcode checker is the authority. The list beside the
+ * map has the same areas with their postcode districts.
  */
-export function CoverageMap({ launchRegion }: { launchRegion: string }) {
+const SIDE: Record<string, string> = {
+  r: "left-full top-1/2 ml-2 -translate-y-1/2",
+  l: "right-full top-1/2 mr-2 -translate-y-1/2",
+  t: "bottom-full left-1/2 mb-1.5 -translate-x-1/2",
+  b: "left-1/2 top-full mt-1.5 -translate-x-1/2",
+};
+
+export function CoverageMap({ launchRegion, prosNoun }: { launchRegion: string; prosNoun: string }) {
   const { width, height, areas } = projectAreas();
   return (
     <section id="coverage" aria-labelledby="coverage-heading" className="bg-white py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Eyebrow>Areas we cover</Eyebrow>
         <h2 id="coverage-heading" className="mt-2 max-w-3xl text-3xl font-semibold text-ink sm:text-4xl">
-          Local roofers across {launchRegion}
+          Local {prosNoun} across {launchRegion}
         </h2>
         <p className="mt-3 max-w-2xl text-lg text-muted">
           Find your town on the map, or just enter your postcode in the form and we will tell you straight away whether we can help.
@@ -23,6 +31,9 @@ export function CoverageMap({ launchRegion }: { launchRegion: string }) {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_21rem]">
           <figure className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,36,56,0.06),0_12px_32px_-14px_rgba(15,36,56,0.28)] ring-1 ring-stone-200">
+            <p className="border-b border-stone-200 bg-canvas px-4 py-2 text-sm font-medium text-ink md:hidden">
+              <span aria-hidden="true">↔ </span>Swipe the map sideways to see all of it.
+            </p>
             <div
               tabIndex={0}
               role="region"
@@ -31,40 +42,33 @@ export function CoverageMap({ launchRegion }: { launchRegion: string }) {
             >
               <div className="relative min-w-[720px]">
                 <Image src="/images/coverage-map.webp" alt="" width={width} height={height} sizes="(min-width: 1024px) 800px, 720px" className="block h-auto w-full" />
-                <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true" className="absolute inset-0 size-full">
-                  {areas.flatMap(({ area, circles }) =>
-                    circles.map((circle, index) => (
-                      <circle key={`${area.slug}-${index}`} cx={circle.x} cy={circle.y} r={circle.r} fill="var(--color-brand-600)" fillOpacity="0.1" stroke="var(--color-brand-700)" strokeWidth="3.5" />
+                {/* Decorative: the list beside the map carries the same information as text. */}
+                <div aria-hidden="true" className="absolute inset-0">
+                  {areas.flatMap(({ area, points }) =>
+                    points.map((point, index) => (
+                      <span key={`${area.slug}-${index}`} className="absolute" style={{ left: `${point.leftPct}%`, top: `${point.topPct}%` }}>
+                        <span data-map-dot className="absolute left-0 top-0 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-pin shadow-[0_1px_3px_rgba(15,36,56,0.55)] ring-2 ring-white" />
+                        <span className={`absolute whitespace-nowrap text-[12px] font-bold leading-none text-navy-950 [text-shadow:0_0_2px_#fff,0_0_2px_#fff,0_0_3px_#fff,0_0_3px_#fff,0_0_5px_#fff] ${SIDE[point.side]}`}>
+                          {point.label}
+                        </span>
+                      </span>
                     )),
                   )}
-                  {areas.flatMap(({ area, number, badges }) =>
-                    badges.map((badge, index) => (
-                      <g key={`${area.slug}-badge-${index}`}>
-                        <circle cx={badge.x} cy={badge.y} r="23" fill="var(--color-navy-900)" stroke="#ffffff" strokeWidth="4" />
-                        <text x={badge.x} y={badge.y} textAnchor="middle" dominantBaseline="central" fill="#ffffff" fontSize="25" fontWeight="700" style={{ fontFamily: "var(--font-sans)" }}>
-                          {number}
-                        </text>
-                      </g>
-                    )),
-                  )}
-                </svg>
+                </div>
               </div>
             </div>
-            <p className="border-t border-stone-200 px-4 py-2 text-xs font-medium text-muted md:hidden">Swipe the map sideways to see all of it.</p>
             <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-stone-200 px-4 py-2.5 text-xs text-muted">
-              <span>The circles show roughly where we cover, not exact boundaries.</span>
+              <span>The dots show roughly where we cover, not exact boundaries.</span>
               <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="rounded underline underline-offset-2 hover:text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
                 Map © OpenStreetMap contributors
               </a>
             </figcaption>
           </figure>
 
-          <ol aria-label="The areas on the map" className="grid content-start gap-1.5 rounded-2xl bg-canvas p-3 ring-1 ring-stone-200 sm:grid-cols-2 lg:grid-cols-1">
-            {areas.map(({ area, number }) => (
+          <ol aria-label="The areas on the map" className="grid content-start gap-1 rounded-2xl bg-canvas p-3 ring-1 ring-stone-200 sm:grid-cols-2 lg:grid-cols-1">
+            {areas.map(({ area }) => (
               <li key={area.slug} className="flex items-start gap-3 rounded-xl px-2.5 py-2">
-                <span aria-hidden="true" className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-navy-900 text-sm font-bold text-white">
-                  {number}
-                </span>
+                <span aria-hidden="true" className="mt-1.5 size-3 shrink-0 rounded-full bg-pin ring-2 ring-white shadow-[0_1px_2px_rgba(15,36,56,0.4)]" />
                 <span>
                   <span className="block font-semibold leading-tight text-ink">{area.name}</span>
                   <span className="block text-sm text-muted">{area.districts.join(", ")}</span>

@@ -33,6 +33,8 @@
   --color-brand-800: #94330f;
   --color-brand-900: #6b2610;
 
+  /* The red dot that marks an area on the coverage map: vivid enough to stand out on a muted grey street map. */
+  --color-pin: #d92d20;
   --color-error: #b91c1c;
   --color-success: #15803d;
 
