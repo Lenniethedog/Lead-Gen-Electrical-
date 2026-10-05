@@ -290,6 +290,80 @@ test.describe("the business dashboard", () => {
     }
   });
 
+  test("a business reports a problem; staff uphold it; the charge is refunded and the lead leaves the business's list", async ({ page, request, baseURL, browser }, testInfo) => {
+    const stamp = unique();
+    const business = `E2E Dispute ${stamp}`;
+    const email = `disp-${stamp}@roofer.example`;
+    await signInAsOwner(page);
+    await priceForTestLeads(page);
+    await createActiveClient(page, business);
+    const clientPage = page.url();
+    await inviteViaAdmin(page, "Dee Disputes", email, "owner");
+    await page.getByLabel("How they pay").selectOption("prepaid");
+    await page.locator("#billing").getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("status").first()).toContainText("Billing changed");
+    await page.getByLabel("What for").selectOption("top_up:bank_transfer");
+    await page.getByLabel("Amount (£)").fill("70");
+    await page.getByRole("button", { name: "Record it" }).click();
+    await expect(page.getByLabel("Credit balance")).toHaveText("£70.00");
+    const reference = await assignTo(page, request, baseURL!, business);
+    await page.goto(clientPage);
+    await expect(page.getByLabel("Credit balance")).toHaveText("£35.00");
+
+    const owner = await ownerContext(browser, baseURL!, testInfo.project);
+    try {
+      const me = owner.page;
+      await signInThroughPage(me, await plantLink(email));
+      await me.getByRole("link", { name: new RegExp(reference) }).click();
+      await me.getByRole("button", { name: "Accept this lead" }).click();
+      await expect(me.getByRole("status").first()).toContainText("Accepted");
+
+      // Reporting needs a reason; 'something else' needs words.
+      await me.getByLabel("What is wrong").selectOption("other");
+      await me.getByRole("button", { name: "Report a problem" }).click();
+      await expect(problem(me)).toContainText("few words");
+      await me.getByLabel("What is wrong").selectOption("wrong_number");
+      await me.getByLabel("Tell us more (optional)").fill("Rang twice, a different person answered");
+      await expectNoViolations(me, "report a problem form");
+      await me.getByRole("button", { name: "Report a problem" }).click();
+      await expect(me.getByRole("status").first()).toContainText("We will look at it");
+      await expect(me.getByRole("heading", { name: "Problem reported" })).toBeVisible();
+      await expect(me.getByRole("button", { name: "Withdraw it" })).toBeVisible();
+
+      // Staff see it waiting, with the business's words, and uphold it.
+      await page.goto("/admin/disputes");
+      await expect(page.getByRole("link", { name: "Disputes (" })).toBeVisible();
+      const card = page.getByRole("listitem").filter({ hasText: reference });
+      await expect(card).toContainText("Rang twice, a different person answered");
+      await card.getByLabel("Decision").selectOption("uphold");
+      await card.getByLabel("Because").selectOption("confirmed_bad_number");
+      await expectNoViolations(page, "disputes queue");
+      await card.getByRole("button", { name: "Record the decision" }).click();
+      await expect(page.getByRole("status").first()).toContainText("Upheld");
+      await expect(page.getByRole("listitem").filter({ hasText: reference })).toHaveCount(0);
+
+      // The money is back, and the lead is free for staff to decide about.
+      await page.goto(clientPage);
+      await expect(page.getByLabel("Credit balance")).toHaveText("£70.00");
+      await expect(page.locator("#billing").getByText("Lead refunded").first()).toBeVisible();
+      await page.goto("/admin/leads");
+      await expect(page.getByRole("row").filter({ hasText: reference })).toBeVisible();
+
+      // The business: gone from New leads, in History as Refunded without the person's details, and the problem shows as upheld.
+      await me.goto("/dashboard");
+      await expect(me.getByRole("link", { name: new RegExp(reference) })).toHaveCount(0);
+      await me.goto("/dashboard/history");
+      await me.getByRole("link", { name: new RegExp(reference) }).click();
+      await expect(me.getByText("no longer with you")).toBeVisible();
+      await expect(me.getByRole("link", { name: /^Call / })).toHaveCount(0);
+      await me.goto("/dashboard/disputes");
+      await expect(me.getByText("Upheld: refunded")).toBeVisible();
+      await expectNoViolations(me, "problems reported");
+    } finally {
+      await owner.context.close();
+    }
+  });
+
   test("asking for a link says the same thing for a stranger as for a person who has an account", async ({ browser, baseURL }, testInfo) => {
     const owner = await ownerContext(browser, baseURL!, testInfo.project);
     try {

@@ -8,4 +8,4 @@ export {
   type Candidates,
 } from "./service";
 export { buildHandoverMessage } from "./message";
-export { activeAssignmentsForLead, commitExclusive, consentState, insertRoutedAssignment, lockLead, transitionAssignment, transitionLead, ACTIVE_STATUSES, type AssignmentHistoryEntry, type AssignmentRow, type AssignmentStatus, type LeadAssignmentView } from "./repo";
+export { activeAssignmentsForLead, commitExclusive, consentState, insertLeadEvent, insertRoutedAssignment, lockAssignment, lockLead, transitionAssignment, transitionLead, ACTIVE_STATUSES, type AssignmentHistoryEntry, type AssignmentRow, type AssignmentStatus, type LeadAssignmentView } from "./repo";

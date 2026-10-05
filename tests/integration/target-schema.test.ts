@@ -188,13 +188,7 @@ describe("assignment lifecycle", () => {
   });
 });
 
-describe("money cannot go wrong silently", () => {
-  async function assignmentFor(client: string) {
-    const leadId = await makeLead("exclusive");
-    const { rows } = await assign(leadId, client);
-    return (rows[0] as { id: string }).id;
-  }
-
+describe("what is still design (allowances, provider events): money cannot go wrong silently", () => {
   it("will not spend more than a subscription's included allowance when charges race", async () => {
     const client = await makeClient();
     const plan = await sql<{ id: string }>`insert into plans (code, name, included_leads) values (${`plan_${counter}`}, 'Starter', 3) returning id`.execute(pool);
@@ -210,13 +204,7 @@ describe("money cannot go wrong silently", () => {
     for (const failure of failures(results)) expect(errorOf(failure)).toMatchObject({ code: "23514" });
   });
 
-  it("allows one open dispute per assignment and processes a replayed provider event once", async () => {
-    const client = await makeClient();
-    const assignmentId = await assignmentFor(client);
-    const dispute = () => sql`insert into disputes (assignment_id, client_id, reason) values (${assignmentId}, ${client}, 'wrong_number')`.execute(pool);
-    const results = await Promise.allSettled([dispute(), dispute()]);
-    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-
+  it("processes a replayed provider event once", async () => {
     const event = () => sql`insert into provider_events (provider, event_id, status) values ('twilio', 'SMreplay:delivered', 'delivered')`.execute(pool);
     const replays = await Promise.allSettled([event(), event(), event()]);
     expect(replays.filter((r) => r.status === "fulfilled")).toHaveLength(1);

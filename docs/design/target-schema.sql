@@ -23,12 +23,10 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 CREATE TYPE integration_kind   AS ENUM ('webhook', 'api_key');
 CREATE TYPE integration_status AS ENUM ('active', 'failing', 'disabled');
 -- ledger_entry_type, charge_source, charge_status, billing_mode are migration 0009 (stage 6, slice 3).
+-- dispute_reason, dispute_status and dispute_resolution are migration 0012 (stage 6, slice 4).
 CREATE TYPE payment_kind       AS ENUM ('credit_top_up', 'subscription_invoice', 'manual');
 CREATE TYPE payment_status     AS ENUM ('pending', 'succeeded', 'failed', 'refunded', 'partially_refunded');
 CREATE TYPE subscription_status AS ENUM ('trialing', 'active', 'past_due', 'paused', 'cancelled');
-CREATE TYPE dispute_reason     AS ENUM ('wrong_number', 'not_homeowner', 'out_of_area', 'duplicate', 'spam', 'not_as_described', 'other');
-CREATE TYPE dispute_status     AS ENUM ('open', 'under_review', 'upheld', 'rejected', 'withdrawn');
-CREATE TYPE dispute_resolution AS ENUM ('credit_refund', 'replacement_lead', 'no_action');
 -- contact_outcome is migration 0008 (stage 6).
 CREATE TYPE dsr_kind           AS ENUM ('access', 'erasure', 'rectification', 'restriction', 'objection', 'withdraw_consent');
 CREATE TYPE dsr_status         AS ENUM ('received', 'verifying', 'in_progress', 'completed', 'refused');
@@ -136,25 +134,7 @@ CREATE INDEX payments_client_idx ON payments (client_id, created_at DESC);
 -- ---------------------------------------------------------------------------------------------------
 -- Disputes, ledger and charges: money can never go wrong silently
 -- ---------------------------------------------------------------------------------------------------
-CREATE TABLE disputes (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  assignment_id uuid NOT NULL REFERENCES lead_assignments (id),
-  client_id     uuid NOT NULL REFERENCES clients (id),
-  reason        dispute_reason NOT NULL,
-  description   text CHECK (char_length(description) <= 2000),
-  status        dispute_status NOT NULL DEFAULT 'open',
-  resolution    dispute_resolution,
-  raised_by     uuid REFERENCES client_users (id),
-  decided_by    uuid REFERENCES operators (id),
-  decided_at    timestamptz,
-  decision_note text CHECK (char_length(decision_note) <= 2000),
-  created_at    timestamptz NOT NULL DEFAULT now(),
-  updated_at    timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT disputes_decision_chk CHECK ((status IN ('upheld', 'rejected')) = (decided_at IS NOT NULL)),
-  CONSTRAINT disputes_upheld_has_resolution_chk CHECK (status <> 'upheld' OR resolution IS NOT NULL)
-);
-CREATE UNIQUE INDEX disputes_one_open_per_assignment ON disputes (assignment_id) WHERE status IN ('open', 'under_review');
-CREATE TRIGGER disputes_set_updated_at BEFORE UPDATE ON disputes FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- disputes is migration 0012 (stage 6, slice 4). The ledger's dispute link was dropped: a refund is tied to its assignment, and the dispute to the same assignment.
 
 
 

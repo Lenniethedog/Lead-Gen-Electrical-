@@ -33,6 +33,12 @@ export type CoverageMode = "exclude" | "include";
 
 export type DeliveryMode = "automatic" | "manual";
 
+export type DisputeReason = "duplicate" | "not_as_described" | "not_homeowner" | "other" | "out_of_area" | "spam" | "wrong_number";
+
+export type DisputeResolution = "credit_refund" | "replacement_lead";
+
+export type DisputeStatus = "open" | "rejected" | "under_review" | "upheld" | "withdrawn";
+
 export type FraudDecision = "accept" | "flag" | "reject" | "review";
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
@@ -265,6 +271,22 @@ export interface CreditLedger {
   id: Generated<Int8>;
   idempotency_key: string;
   reason: string | null;
+}
+
+export interface Disputes {
+  assignment_id: string;
+  client_id: string;
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  decision_reason: string | null;
+  description: string | null;
+  id: Generated<string>;
+  raised_by: string;
+  reason: DisputeReason;
+  resolution: DisputeResolution | null;
+  status: Generated<DisputeStatus>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface LeadAssignments {
@@ -640,6 +662,7 @@ export interface DB {
   consent_records: ConsentRecords;
   consent_texts: ConsentTexts;
   credit_ledger: CreditLedger;
+  disputes: Disputes;
   lead_assignment_status_history: LeadAssignmentStatusHistory;
   lead_assignments: LeadAssignments;
   lead_attributions: LeadAttributions;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { loadOpenDisputeCount } from "@/server/admin/disputes";
 import { loadOperatorEmail } from "@/server/admin/inbox";
 
 // Never indexed, never cached: the response carries personal data and is for named operators only.
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const email = await loadOperatorEmail();
+  const openDisputes = await loadOpenDisputeCount();
   return (
     <div className="min-h-dvh bg-stone-50">
       <header className="border-b border-stone-200 bg-white">
@@ -18,9 +20,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
             <Link href="/admin/leads" className="text-lg font-extrabold tracking-tight text-ink">
               Operator inbox
             </Link>
-            {([["/admin/leads", "Leads"], ["/admin/clients", "Clients"], ["/admin/coverage", "Coverage tester"], ["/admin/pricing", "Pricing"], ["/admin/routing", "Routing"], ["/admin/deliveries", "Deliveries"]] as const).map(([href, label]) => (
+            {([["/admin/leads", "Leads"], ["/admin/clients", "Clients"], ["/admin/coverage", "Coverage tester"], ["/admin/pricing", "Pricing"], ["/admin/routing", "Routing"], ["/admin/deliveries", "Deliveries"], ["/admin/disputes", "Disputes"]] as const).map(([href, label]) => (
               <Link key={href} href={href} className="font-semibold text-brand-800 underline underline-offset-4">
                 {label}
+                {href === "/admin/disputes" && openDisputes > 0 ? ` (${openDisputes})` : ""}
               </Link>
             ))}
           </nav>

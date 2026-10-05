@@ -122,6 +122,9 @@ Each line is something that was only ever tested against a stand-in. Tick them o
 | 35 | Take that lead back (reason "no response") | the balance returns to £100 and the ledger shows a refund; the charge says Refunded | |
 | 36 | Open `/api/pipeline` | `{"status":"ok"}`; if it says `money_does_not_add_up`, the worker log names the first problems: stop assigning to prepaid businesses until they are explained | |
 | 37 | Before taking real money: confirm you are happy that "Payment received" is recorded BY HAND from your bank statement (there is no payment integration until stage 7) and that you invoice invoiced businesses from the Charges list on their client page | | |
+| 38 | On the TEST business accept a lead, then use **Report a problem** on its page. Then open Admin, Disputes | the dispute is waiting with the business's words; the nav shows a count | |
+| 39 | Uphold it ("We checked: the number or person is wrong") | the charge is refunded (credit back, or the invoice charge shows Refunded); the lead is in Needs action and is NOT picked up by routing; the business sees it in History without the person's details, and the dispute as "Upheld: refunded" | the lead is reassigned by itself: routing was not stopped |
+| 40 | Report another and choose "Do not uphold" | the business keeps the lead and the charge; it cannot report that lead again | |
 | 30 | Make the receiver return 500, hand over another test lead | it retries (5 s, 15 s, 45 s ...); stop the receiver for good and, once every channel has given up, the lead returns to Needs action and is routed to a different business | |
 | 31 | Kill the worker while a delivery is in flight, restart it | the notification is retried after the 60 s lease (the receiver may see it twice, with the same `X-Leadgen-Delivery`) | |
 

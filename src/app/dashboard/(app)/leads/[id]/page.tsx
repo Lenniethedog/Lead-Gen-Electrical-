@@ -5,9 +5,10 @@ import { formatFull, mailtoHref, waitingLabel } from "@/app/admin/_format";
 import { CLIENT_DECLINE_REASONS } from "@/config/assignment";
 import { CONTACT_OUTCOMES } from "@/config/client-dashboard";
 import { OWNERSHIPS, PROPERTY_TYPES, URGENCIES, type Ownership, type PropertyType } from "@/config/lead-options";
-import { loadLeadForClient } from "@/server/client/portal";
+import { DISPUTE_REASONS, DISPUTE_STATUS_LABELS } from "@/config/disputes";
+import { loadDisputesForLead, loadLeadForClient } from "@/server/client/portal";
 import { cardClass, dangerButton, hintClass, inputClass, labelClass, linkClass, primaryButton, secondaryButton } from "../../../../admin/_components/styles";
-import { acceptAction, declineAction, logContactAction } from "./actions";
+import { acceptAction, declineAction, logContactAction, raiseDisputeAction, withdrawDisputeAction } from "./actions";
 import { LeadStatusBadge, TimingBadge } from "../../../_components/StatusBadge";
 
 export const metadata: Metadata = { title: "Lead" };
@@ -17,15 +18,21 @@ const NOTICES: Record<string, string> = {
   logged: "Saved.",
 };
 const ERRORS: Record<string, string> = {
-  not_open: "That lead has already been answered, so nothing was changed.",
+  not_open: "That has already been answered or decided, so nothing was changed.",
   not_accepted: "Accept the lead before recording a call.",
-  invalid_reason: "Choose why you are declining it.",
+  invalid_reason: "Choose a reason from the list.",
   invalid_outcome: "Choose what happened.",
   invalid_value: "Enter the amount in pounds, like 1,500 or 480.50, and only for a quote or a job won.",
   invalid_note: "Keep the note under 1,000 characters.",
   invalid_request: "That request was not valid. Nothing was changed.",
   not_found: "That lead could not be found.",
+  not_disputable: "This lead can no longer be reported.",
+  window_closed: "Problems have to be reported within 7 days of receiving a lead.",
+  already_disputed: "A problem has already been reported for this lead and decided, so it cannot be reported again.",
+  invalid_description: "Tell us what is wrong in a few words (up to 2,000 characters).",
 };
+NOTICES.reported = "Thank you. We will look at it and let you know. You are not refunded unless we agree.";
+NOTICES.withdrawn = "Withdrawn. The lead is back with you.";
 
 export default async function LeadPage(props: PageProps<"/dashboard/leads/[id]">) {
   const [{ id }, query] = await Promise.all([props.params, props.searchParams]);
@@ -36,6 +43,9 @@ export default async function LeadPage(props: PageProps<"/dashboard/leads/[id]">
   const error = typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const unanswered = lead.status === "reserved" || lead.status === "notified";
   const canLog = lead.status === "accepted" || lead.status === "disputed";
+  const disputes = await loadDisputesForLead(id);
+  const dispute = disputes.find((d) => d.status !== "withdrawn");
+  const canReport = (unanswered || lead.status === "accepted") && !dispute;
 
   return (
     <>
@@ -94,6 +104,45 @@ export default async function LeadPage(props: PageProps<"/dashboard/leads/[id]">
               ? "This person has asked us to erase their details, so they are no longer available."
               : "This lead is no longer with you, so the person's contact details are not shown."}
           </p>
+        </section>
+      )}
+
+      {(dispute || canReport) && (
+        <section id="problem" aria-labelledby="problem-heading" className={`${cardClass} mt-4`}>
+          <h2 id="problem-heading" className="text-xl font-bold text-ink">{dispute ? "Problem reported" : "Is something wrong with this lead?"}</h2>
+          {dispute ? (
+            <>
+              <p className="mt-1"><span className="font-semibold">{DISPUTE_STATUS_LABELS[dispute.status]}.</span> {DISPUTE_REASONS[dispute.reason]}.</p>
+              {dispute.description && <p className="mt-1 text-muted">You wrote: {dispute.description}</p>}
+              {(dispute.status === "open" || dispute.status === "under_review") && (
+                <>
+                  <p className={`mt-2 ${hintClass}`}>You are charged until we decide. If we agree, you are refunded and the lead is not offered to anyone else automatically.</p>
+                  <form action={withdrawDisputeAction} className="mt-3">
+                    <input type="hidden" name="assignmentId" value={lead.assignmentId} />
+                    <input type="hidden" name="disputeId" value={dispute.id} />
+                    <button type="submit" className={secondaryButton}>Withdraw it</button>
+                  </form>
+                </>
+              )}
+            </>
+          ) : (
+            <form action={raiseDisputeAction} className="mt-3 grid gap-3">
+              <p className={hintClass}>Report it within 7 days. We look at every one, and refund you if we agree.</p>
+              <input type="hidden" name="assignmentId" value={lead.assignmentId} />
+              <div>
+                <label htmlFor="dispute-reason" className={labelClass}>What is wrong</label>
+                <select id="dispute-reason" name="reason" required defaultValue="" className={inputClass}>
+                  <option value="" disabled>Choose</option>
+                  {Object.entries(DISPUTE_REASONS).map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="dispute-description" className={labelClass}>Tell us more (optional)</label>
+                <textarea id="dispute-description" name="description" rows={3} maxLength={2000} className={`${inputClass} py-2`} />
+              </div>
+              <div><button type="submit" className={secondaryButton}>Report a problem</button></div>
+            </form>
+          )}
         </section>
       )}
 

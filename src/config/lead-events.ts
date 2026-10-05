@@ -23,6 +23,10 @@ export const LEAD_EVENT = {
   deliveryFailed: "lead.delivery_failed",
   /** The business it was assigned to declined it (payload: assignment id and the reason code). The router offers it to someone else. */
   declinedByBusiness: "lead.declined_by_business",
+  /** A business reported a problem with the lead (payload: dispute id and reason code). */
+  disputed: "lead.disputed",
+  /** Staff decided a dispute (payload: dispute id, outcome and decision code). */
+  disputeDecided: "lead.dispute_decided",
 } as const;
 
 /** Time-based policy for operator alerting. Tested; see docs/06-operations.md for the reasoning. */

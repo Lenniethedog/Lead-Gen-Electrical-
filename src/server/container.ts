@@ -12,6 +12,7 @@ import { createClientService, type ClientService } from "@/modules/clients";
 import { createCoverageService, type CoverageService } from "@/modules/coverage";
 import { createBillingService, type BillingService } from "@/modules/billing";
 import { createClientAuthService, type ClientAuthService } from "@/modules/clientauth";
+import { createDisputeService, type DisputeService } from "@/modules/disputes";
 import { createPortalService, type PortalService } from "@/modules/portal";
 import { createEmailSender } from "@/integrations/email";
 import type { ClientIpConfig } from "@/lib/ip";
@@ -60,6 +61,8 @@ export interface Container {
   portal: PortalService;
   /** Stage 6: credit, charges and the proof they add up. Staff reach it through src/server/admin; a business through src/server/client. */
   billing: BillingService;
+  /** Stage 6: a business reports a problem with a lead; staff decide (through src/server/admin); the business raises/withdraws (through src/server/client). */
+  disputes: DisputeService;
   /** Limits on asking for sign-in links, per client address (in memory; the per-person limit is in the database). */
   signIn: { ipConfig: ClientIpConfig; rateLimiter: SlidingWindowRateLimiter; secureCookies: boolean };
 }
@@ -129,6 +132,7 @@ function buildContainer(): Container {
     clientAuth: createClientAuthService({ db, logger, sender: createEmailSender(env), appUrl: env.APP_URL, brandName: getBrand().name }),
     portal: createPortalService({ db, logger, assignments }),
     billing: createBillingService({ db, logger }),
+    disputes: createDisputeService({ db, logger }),
     // 10 requests / 10 min / IP: someone fumbling their address, not someone harvesting accounts.
     signIn: { ipConfig, rateLimiter: new SlidingWindowRateLimiter({ limit: 10, windowMs: 10 * 60_000 }), secureCookies: env.APP_URL.startsWith("https://") },
   };

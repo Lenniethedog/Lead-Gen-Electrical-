@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import { redirect } from "next/navigation";
-import { acceptLeadFromForm, declineLeadFromForm, logContactFromForm, type AnswerOutcome } from "@/server/client/portal";
+import { acceptLeadFromForm, declineLeadFromForm, logContactFromForm, raiseDisputeFromForm, withdrawDisputeFromForm, type AnswerOutcome } from "@/server/client/portal";
 
 /** Server actions are reachable by a direct POST, so each authenticates inside the data layer. They answer with a redirect carrying a short notice code. */
 const where = (outcome: AnswerOutcome): Route => {
@@ -19,4 +19,10 @@ export async function declineAction(form: FormData): Promise<void> {
 }
 export async function logContactAction(form: FormData): Promise<void> {
   redirect(where(await logContactFromForm(form)));
+}
+export async function raiseDisputeAction(form: FormData): Promise<void> {
+  redirect(where(await raiseDisputeFromForm(form)));
+}
+export async function withdrawDisputeAction(form: FormData): Promise<void> {
+  redirect(where(await withdrawDisputeFromForm(form)));
 }

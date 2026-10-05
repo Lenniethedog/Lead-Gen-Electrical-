@@ -66,3 +66,34 @@ export async function logContactFromForm(form: FormData): Promise<AnswerOutcome>
   if (result.code === "invalid") return { ok: false, assignmentId, error: result.errors?.outcome ? "invalid_outcome" : result.errors?.jobValue ? "invalid_value" : "invalid_note" };
   return { ok: false, assignmentId, error: result.code };
 }
+
+// ---- Reporting a problem with a lead (slice 4) ----
+
+export async function loadDisputesForLead(assignmentId: string) {
+  const session = await requireClientSession();
+  const id = idOf(assignmentId);
+  return id ? getContainer().disputes.forAssignment(session, id) : [];
+}
+
+export async function loadDisputeList() {
+  const session = await requireClientSession();
+  return getContainer().disputes.forBusiness(session);
+}
+
+export async function raiseDisputeFromForm(form: FormData): Promise<AnswerOutcome> {
+  const session = await requireClientSession();
+  const assignmentId = idOf(field(form, "assignmentId"));
+  if (!assignmentId) return { ok: false, assignmentId: undefined, error: "invalid_request" };
+  const result = await getContainer().disputes.raise(session, assignmentId, { reason: field(form, "reason"), description: field(form, "description") }, newRequestId());
+  if (result.ok) return { ok: true, assignmentId, notice: "reported" };
+  return { ok: false, assignmentId, error: result.code === "invalid_input" ? (result.errors?.description ? "invalid_description" : "invalid_reason") : result.code };
+}
+
+export async function withdrawDisputeFromForm(form: FormData): Promise<AnswerOutcome> {
+  const session = await requireClientSession();
+  const assignmentId = idOf(field(form, "assignmentId"));
+  const disputeId = idOf(field(form, "disputeId"));
+  if (!assignmentId || !disputeId) return { ok: false, assignmentId, error: "invalid_request" };
+  const result = await getContainer().disputes.withdraw(session, disputeId, newRequestId());
+  return result.ok ? { ok: true, assignmentId, notice: "withdrawn" } : { ok: false, assignmentId, error: result.code };
+}

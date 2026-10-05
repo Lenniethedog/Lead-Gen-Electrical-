@@ -15,6 +15,9 @@ export const NOTICES: Record<string, string> = {
   user_disabled: "Disabled. They are signed out everywhere and cannot sign in.",
   user_enabled: "Enabled. They can ask for a sign-in link again.",
   user_role_changed: "Role changed.",
+  // disputes
+  dispute_upheld: "Upheld. The charge has been refunded and the lead is back with you; it will not be offered to anyone else until you decide.",
+  dispute_rejected: "Recorded as not upheld. The business keeps the lead and the charge.",
   // credit
   credit_posted: "Recorded.",
   credit_replay: "That was already recorded (the form was sent twice), so nothing more was added.",
@@ -76,6 +79,11 @@ export const ERRORS: Record<string, string> = {
   not_notifiable: "That assignment is not waiting to be sent.",
   insufficient_credit: "That business pays from credit and does not have enough for that (a balance cannot go below zero). Add credit first, or choose another business.",
   invalid_mode: "Choose invoiced or prepaid.",
+  invalid_outcome: "Choose uphold or not upheld.",
+  invalid_resolution: "Choose what happens when it is upheld.",
+  invalid_decision_reason: "Choose a reason that matches the decision (an upholding reason cannot justify not upholding, and the other way round).",
+  not_open: "That dispute has already been decided or withdrawn, so nothing was changed.",
+  inconsistent: "That dispute and its lead no longer agree. Reload and look at the lead.",
   forbidden: "Only an owner can do that.",
   sms_needs_phone: "Add a phone number to this business before turning on text messages.",
   webhook_needs_secret: "Generate a signing secret before turning on the webhook.",

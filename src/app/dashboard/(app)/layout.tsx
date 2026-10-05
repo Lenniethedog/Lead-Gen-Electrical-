@@ -12,6 +12,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             <Link href="/dashboard" className="text-lg font-extrabold tracking-tight text-ink">{clientName}</Link>
             <Link href="/dashboard" className="font-semibold text-brand-800 underline underline-offset-4">New leads</Link>
             <Link href="/dashboard/history" className="font-semibold text-brand-800 underline underline-offset-4">History</Link>
+            <Link href="/dashboard/disputes" className="font-semibold text-brand-800 underline underline-offset-4">Problems</Link>
             {canSeeBilling && <Link href="/dashboard/billing" className="font-semibold text-brand-800 underline underline-offset-4">Billing</Link>}
           </nav>
           <form action={signOutAction} className="text-sm text-muted">
