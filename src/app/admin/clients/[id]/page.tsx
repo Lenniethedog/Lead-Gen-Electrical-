@@ -5,6 +5,7 @@ import { CLIENT_STATUSES, CLIENT_STATUS_REASONS, MAX_RADIUS_MILES } from "@/modu
 import { formatPence } from "@/modules/pricing/schemas";
 import { loadClient, loadClientDelivery, loadClientRouting } from "@/server/admin/clients";
 import { loadClientBilling } from "@/server/admin/billing";
+import { loadClientRequests } from "@/server/admin/requests";
 import { loadClientUsers } from "@/server/admin/users";
 import { AssignmentStatusBadge, ClientStatusBadge } from "../../_components/Badges";
 import { cardClass, hintClass, inputClass, labelClass, linkClass, primaryButton, secondaryButton } from "../../_components/styles";
@@ -15,7 +16,7 @@ import { BillingPanel } from "./BillingPanel";
 import { ClientUsers } from "./ClientUsers";
 import { DeliverySettings } from "./DeliverySettings";
 import { RoutingPreferences } from "./RoutingPreferences";
-import { addCoverageAction, changeServicesAction, changeStatusAction, removeCoverageAction, updateClientAction } from "../actions";
+import { markRequestDoneAction, addCoverageAction, changeServicesAction, changeStatusAction, removeCoverageAction, updateClientAction } from "../actions";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -33,6 +34,7 @@ export default async function ClientPage(props: PageProps<"/admin/clients/[id]">
   const delivery = await loadClientDelivery(client.id);
   const users = await loadClientUsers(client.id);
   const billing = await loadClientBilling(client.id);
+  const requests = await loadClientRequests(client.id);
 
   const notice = typeof query.notice === "string" ? NOTICES[query.notice] : undefined;
   const error = typeof query.error === "string" ? (typeof query.detail === "string" && query.error === "invalid_request" ? query.detail : ERRORS[query.error]) : undefined;
@@ -195,6 +197,27 @@ export default async function ClientPage(props: PageProps<"/admin/clients/[id]">
           </form>
         </div>
       </section>
+
+      {requests.length > 0 && (
+        <section id="requests" aria-labelledby="requests-heading" className={`${cardClass} mt-6 border-brand-700`}>
+          <h2 id="requests-heading" className="text-xl font-bold text-ink">Requests from the business ({requests.length})</h2>
+          <p className={`mt-1 ${hintClass}`}>They cannot change their own coverage or services. Make the change below, then mark the request done.</p>
+          <ul className="mt-3 divide-y divide-stone-200">
+            {requests.map((request) => (
+              <li key={request.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
+                <div>
+                  <div className="font-semibold">{{ coverage: "Where they cover", services: "What they do", other: "Something else" }[request.kind]} <span className="font-normal text-muted">· {request.requestedBy} · {formatShort(request.createdAt)}</span></div>
+                  <p className="whitespace-pre-line">{request.message}</p>
+                </div>
+                <form action={markRequestDoneAction}>
+                  <input type="hidden" name="requestId" value={request.id} />
+                  <button type="submit" className={secondaryButton}>Mark done</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {billing && <BillingPanel clientId={client.id} billing={billing} />}
 

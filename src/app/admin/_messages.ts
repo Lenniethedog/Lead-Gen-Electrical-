@@ -15,6 +15,7 @@ export const NOTICES: Record<string, string> = {
   user_disabled: "Disabled. They are signed out everywhere and cannot sign in.",
   user_enabled: "Enabled. They can ask for a sign-in link again.",
   user_role_changed: "Role changed.",
+  request_done: "Marked as done.",
   // disputes
   dispute_upheld: "Upheld. The charge has been refunded and the lead is back with you; it will not be offered to anyone else until you decide.",
   dispute_rejected: "Recorded as not upheld. The business keeps the lead and the charge.",

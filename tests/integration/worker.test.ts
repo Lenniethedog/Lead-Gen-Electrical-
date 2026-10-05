@@ -482,6 +482,7 @@ describe("housekeeping", () => {
     expect(bad).toBe(1);
     await new Promise((resolve) => setTimeout(resolve, 1_200));
     expect(good).toBeGreaterThanOrEqual(2);
+    expect(good).toBeLessThanOrEqual(4); // passes happen every 250 ms but the tasks only every 400 ms: about three runs in 1.2 s, not five or six
     expect(good).toBe(bad);
     await worker.stop();
   });

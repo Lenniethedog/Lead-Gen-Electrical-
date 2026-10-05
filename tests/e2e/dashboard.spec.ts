@@ -364,6 +364,97 @@ test.describe("the business dashboard", () => {
     }
   });
 
+  test("settings, areas and performance: roles are respected, a change is requested and handled by staff, the counts are right", async ({ page, request, baseURL, browser }, testInfo) => {
+    const stamp = unique();
+    const business = `E2E Account ${stamp}`;
+    const ownerEmail = `own-${stamp}@roofer.example`;
+    const managerEmail = `mgr-${stamp}@roofer.example`;
+    const agentEmail = `agt-${stamp}@roofer.example`;
+    await signInAsOwner(page);
+    await priceForTestLeads(page);
+    await createActiveClient(page, business);
+    const clientPage = page.url();
+    await inviteViaAdmin(page, "Olive Owner", ownerEmail, "owner");
+    await inviteViaAdmin(page, "Mo Manager", managerEmail, "manager");
+    await inviteViaAdmin(page, "Al Agent", agentEmail, "agent");
+    const reference = await assignTo(page, request, baseURL!, business);
+
+    const owner = await ownerContext(browser, baseURL!, testInfo.project);
+    const manager = await ownerContext(browser, baseURL!, testInfo.project);
+    const agent = await ownerContext(browser, baseURL!, testInfo.project);
+    try {
+      const me = owner.page;
+      await signInThroughPage(me, await plantLink(ownerEmail));
+      await me.getByRole("link", { name: new RegExp(reference) }).click();
+      await me.getByRole("button", { name: "Accept this lead" }).click();
+      await expect(me.getByRole("status").first()).toContainText("Accepted");
+      await me.getByLabel("How did it go?").selectOption("won");
+      await me.getByLabel(/Value of the quote/).fill("900");
+      await me.getByRole("button", { name: "Save" }).click();
+      await expect(me.getByRole("status").first()).toContainText("Saved");
+
+      // Performance: exact counts for this fresh business, with the money.
+      await me.getByRole("link", { name: "Performance" }).click();
+      await expect(me.getByRole("heading", { name: "How you are doing" })).toBeVisible();
+      const tile = (label: string) => me.getByText(label, { exact: true }).locator("xpath=following-sibling::dd[1]");
+      await expect(tile("Leads received")).toHaveText("1");
+      await expect(tile("Accepted")).toHaveText("1");
+      await expect(tile("Jobs won")).toHaveText("1");
+      await expect(tile("Value of jobs won")).toHaveText("£900.00");
+      await expect(tile("Spent on leads")).toHaveText("£35.00");
+      await expectNoViolations(me, "performance");
+
+      // Settings: the owner changes where leads go.
+      await me.getByRole("link", { name: "Settings" }).click();
+      await me.getByLabel("Email address for leads").fill(`new-${stamp}@roofer.example`);
+      await me.getByRole("button", { name: "Save" }).click();
+      await expect(me.getByRole("status").first()).toContainText("Saved");
+      await expect(me.getByLabel("Email address for leads")).toHaveValue(`new-${stamp}@roofer.example`);
+      await expectNoViolations(me, "settings");
+
+      // Areas: read-only, in words, with a way to ask.
+      await me.getByRole("link", { name: "Areas" }).click();
+      await expect(me.getByText("Postcode district BR6")).toBeVisible();
+      await expect(me.getByText("Roof repair or leak")).toBeVisible();
+      await me.getByLabel("What would you like changed").selectOption("coverage");
+      await me.getByLabel("Tell us what you would like").fill("Please add BR1 and BR2");
+      await me.getByRole("button", { name: "Send request" }).click();
+      await expect(me.getByRole("status").first()).toContainText("We have your request");
+      await expect(me.getByRole("listitem").filter({ hasText: "Please add BR1 and BR2" })).toContainText("Waiting");
+      await expectNoViolations(me, "areas");
+
+      // A manager sees where leads go but cannot change it; an agent has no Settings and sees no money.
+      await signInThroughPage(manager.page, await plantLink(managerEmail));
+      await manager.page.getByRole("link", { name: "Settings" }).click();
+      await expect(manager.page.getByText("Only the owner can change where leads are sent").first()).toBeVisible();
+      await expect(manager.page.getByLabel("Email address for leads")).toHaveCount(0);
+      await manager.page.getByRole("button", { name: "Save" }).click();
+      await expect(problem(manager.page)).toContainText("Nothing was different");
+
+      await signInThroughPage(agent.page, await plantLink(agentEmail));
+      await expect(agent.page.getByRole("link", { name: "Settings" })).toHaveCount(0);
+      expect((await agent.page.goto("/dashboard/settings"))?.status()).toBe(404);
+      await agent.page.goto("/dashboard/performance");
+      await expect(agent.page.getByText("Leads received", { exact: true })).toBeVisible();
+      await expect(agent.page.getByText("Spent on leads")).toHaveCount(0);
+
+      // Staff: the request is waiting, shown with the nav count, and can be marked done.
+      await page.goto(clientPage);
+      await expect(page.getByRole("heading", { name: /Requests from the business \(1\)/ })).toBeVisible();
+      await expect(page.getByText("Please add BR1 and BR2")).toBeVisible();
+      await expect(page.getByRole("link", { name: /^Clients \(/ })).toBeVisible();
+      await page.getByRole("button", { name: "Mark done" }).click();
+      await expect(page.getByRole("status").first()).toContainText("Marked as done");
+      await expect(page.getByRole("heading", { name: /Requests from the business/ })).toHaveCount(0);
+      await me.goto("/dashboard/areas");
+      await expect(me.getByRole("listitem").filter({ hasText: "Please add BR1 and BR2" })).toContainText("Done");
+    } finally {
+      await owner.context.close();
+      await manager.context.close();
+      await agent.context.close();
+    }
+  });
+
   test("asking for a link says the same thing for a stranger as for a person who has an account", async ({ browser, baseURL }, testInfo) => {
     const owner = await ownerContext(browser, baseURL!, testInfo.project);
     try {

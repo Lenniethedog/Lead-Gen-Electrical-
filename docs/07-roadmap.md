@@ -137,7 +137,7 @@ Delivery is **off per business until an owner switches it on** (`manual` is the 
 
 ## Stage 6: Client dashboard and credit ledger
 
-**Progress:** slice 1 (sign-in, tenant isolation, the leads a business holds) is built and tested; slices 2-5 (accept/reject and outcomes; wallet, ledger and charging; disputes and refunds; settings, areas and counts) are not. See docs/00 D43-D46 and docs/05 "Stage 6, slice 1 as built".
+**Progress: built and tested locally (all five slices).** Sign-in and tenant isolation; accept, decline and call outcomes; wallet, ledger and charging; disputes and refunds; notification settings, the read-only area view and performance counts. Decisions D43-D62, docs/05 "Stage 6 ... as built". **Not verified:** nothing has run against a real email provider (sign-in links), a real payment (credit is recorded by hand until stage 7), or a paying business; the defaults (7-day dispute window, five open requests, hourly money check) are guesses to correct with real use.
 
 - **Build:** client authentication (passwordless), tenant-scoped repositories and RLS; dashboard per 05 (new leads, detail, accept/reject, outcomes, disputes, service-area view, notification settings, spend and performance counts);
   `client_wallets`, `credit_ledger`, `lead_charges` and the **charge waterfall at assignment**; staff-granted credit; refunds as ledger entries; nightly wallet-vs-ledger reconciliation.

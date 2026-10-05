@@ -47,10 +47,24 @@ describe("the database really enforces it for the application role", () => {
     expect(owned.rows).toEqual([]);
   });
 
-  it("row-level security is switched on for every table the dashboard reads", async () => {
-    const { rows } = await sql<{ relname: string; relrowsecurity: boolean }>`select relname, relrowsecurity from pg_class where relname in ('lead_assignments', 'leads', 'lead_contacts', 'clients')`.execute(t.admin);
-    expect(rows.map((r) => r.relname).sort()).toEqual(["clients", "lead_assignments", "lead_contacts", "leads"]);
-    expect(rows.every((r) => r.relrowsecurity)).toBe(true);
+  it("row-level security is switched on for EVERY table the dashboard reads", async () => {
+    const tables = ["lead_assignments", "leads", "lead_contacts", "clients", "assignment_contact_attempts", "client_wallets", "credit_ledger", "lead_charges", "disputes", "client_change_requests", "client_services", "client_service_areas"];
+    const { rows } = await sql<{ relname: string; relrowsecurity: boolean }>`select relname, relrowsecurity from pg_class where relname = any(${sql.val(tables)}::text[]) and relkind = 'r'`.execute(t.admin);
+    expect(rows.map((r) => r.relname).sort()).toEqual([...tables].sort());
+    expect(rows.filter((r) => !r.relrowsecurity).map((r) => r.relname)).toEqual([]);
+  });
+
+  it("and any table the dashboard code queries is on that list (a new table cannot be added without a policy and this test)", async () => {
+    const { readdirSync, readFileSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => (statSync(join(dir, name)).isDirectory() ? walk(join(dir, name)) : [join(dir, name)]));
+    const source = ["portal", "billing", "disputes"].flatMap((module) => walk(join(import.meta.dirname, "../../src/modules", module))).filter((file) => file.endsWith("repo.ts")).map((file) => readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")).join("\n");
+    const mentioned = new Set([...source.matchAll(/\b(?:from|join|into|update)\s+([a-z_]+)\b/g)].map((m) => m[1]!));
+    const known = new Set(["lead_assignments", "leads", "lead_contacts", "clients", "assignment_contact_attempts", "client_wallets", "credit_ledger", "lead_charges", "disputes", "client_change_requests", "client_services", "client_service_areas",
+      // read-only reference or staff tables that carry no business's data:
+      "service_types", "service_areas", "client_users", "operators", "v_money_problems", "lead_assignments"]);
+    const unknown = [...mentioned].filter((name) => !known.has(name) && !["set", "the", "a", "and", "tenant", "now", "interval", "make_interval", "w", "first_contact", "of"].includes(name));
+    expect(unknown, "a dashboard repo reads a table that has no row-level security test: add a policy and list it above").toEqual([]);
   });
 });
 

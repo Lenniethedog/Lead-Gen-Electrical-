@@ -45,7 +45,7 @@ describe("every admin entry point authenticates through the data-access layer", 
         "disputes/page.tsx", "disputes/actions.ts",
       ].sort(),
     );
-    expect(dalFiles.sort()).toEqual(["assignments.ts", "billing.ts", "clients.ts", "delivery.ts", "disputes.ts", "inbox.ts", "pricing.ts", "routing.ts", "users.ts"]);
+    expect(dalFiles.sort()).toEqual(["assignments.ts", "billing.ts", "clients.ts", "delivery.ts", "disputes.ts", "inbox.ts", "pricing.ts", "requests.ts", "routing.ts", "users.ts"]);
     expect(AUTHENTICATING.length).toBeGreaterThanOrEqual(20);
   });
 

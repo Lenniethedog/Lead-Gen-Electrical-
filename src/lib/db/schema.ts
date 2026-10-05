@@ -13,6 +13,10 @@ export type AssignmentStatus = "accepted" | "cancelled" | "delivery_failed" | "d
 
 export type BillingMode = "invoice" | "prepaid";
 
+export type ChangeRequestKind = "coverage" | "other" | "services";
+
+export type ChangeRequestStatus = "done" | "open";
+
 export type ChargeSource = "credit_balance" | "included_allowance" | "invoice";
 
 export type ChargeStatus = "posted" | "reversed";
@@ -122,6 +126,18 @@ export interface AuditLogs {
   reason: string | null;
   request_id: string | null;
   user_agent: string | null;
+}
+
+export interface ClientChangeRequests {
+  client_id: string;
+  created_at: Generated<Timestamp>;
+  done_at: Timestamp | null;
+  done_by: string | null;
+  id: Generated<string>;
+  kind: ChangeRequestKind;
+  message: string;
+  requested_by: string;
+  status: Generated<ChangeRequestStatus>;
 }
 
 export interface ClientLoginTokens {
@@ -650,6 +666,7 @@ export interface DB {
   assignment_contact_attempts: AssignmentContactAttempts;
   assignment_status_transitions: AssignmentStatusTransitions;
   audit_logs: AuditLogs;
+  client_change_requests: ClientChangeRequests;
   client_login_tokens: ClientLoginTokens;
   client_pauses: ClientPauses;
   client_service_areas: ClientServiceAreas;

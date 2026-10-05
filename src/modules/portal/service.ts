@@ -5,8 +5,13 @@ import type { Database } from "@/lib/db/client";
 import { writeAudit } from "@/modules/audit";
 import type { ClientSession } from "@/modules/clientauth";
 import type { AssignmentResult, AssignmentService } from "@/modules/assignments";
-import { getLeadDetail, insertContactAttempt, listContactAttempts, listLeads, lockOwnAssignmentStatus, type LeadDetailRow, type LeadRow } from "./repo";
-import { parseContactAttempt, type ContactAttemptInput } from "./schemas";
+import type { Operator } from "@/modules/inbox";
+import {
+  countOpenChangeRequests, countOpenChangeRequestsFor, getLeadDetail, getNotificationState, getPerformance, getServiceAreaView, insertChangeRequest, insertContactAttempt, listChangeRequests,
+  listContactAttempts, listLeads, listOpenChangeRequests, lockOwnAssignmentStatus, markChangeRequestDone, updateNotificationState,
+  type ChangeRequestRow, type LeadDetailRow, type LeadRow, type NotificationState, type PerformanceRow, type ServiceAreaView,
+} from "./repo";
+import { parseChangeRequest, parseContactAttempt, parseNotificationSettings, type ContactAttemptInput } from "./schemas";
 
 export interface PortalServiceDeps {
   db: Database;
@@ -49,6 +54,90 @@ export function createPortalService(deps: PortalServiceDeps) {
         return detail;
       });
     },
+    // ---- How the business is told (slice 5) ----
+
+    notificationSettings(session: ClientSession): Promise<NotificationState | undefined> {
+      return withClientScope(db, session.clientId, (scoped) => getNotificationState(scoped, session.clientId));
+    },
+
+    /**
+     * The business changes how it is told. An agent cannot. A manager can switch email and text on or off; only an OWNER can change WHERE leads
+     * (which carry people's details) are sent, so one person's stolen sign-in cannot quietly redirect them. At least one way must stay on for a
+     * business on automatic delivery, a text needs a number, and every change is audited with the person who made it. The webhook is staff's.
+     */
+    async saveNotificationSettings(session: ClientSession, fields: Record<string, string | undefined>, requestId: string): Promise<
+      { ok: true } | { ok: false; code: "forbidden" | "not_found" | "invalid" | "no_channel" | "unchanged"; errors?: Record<string, string> }
+    > {
+      if (session.role === "agent") return { ok: false, code: "forbidden" };
+      const parsed = parseNotificationSettings(fields);
+      if (!parsed.ok) return { ok: false, code: "invalid", errors: parsed.errors as Record<string, string> };
+      const next = parsed.value;
+      return withClientScope(db, session.clientId, async (scoped) => {
+        const before = await getNotificationState(scoped, session.clientId);
+        if (!before) return { ok: false, code: "not_found" } as const;
+        const addressChanged = next.contactEmail !== before.contactEmail || next.contactPhone !== before.contactPhone;
+        if (addressChanged && session.role !== "owner") return { ok: false, code: "forbidden" } as const;
+        if (before.mode === "automatic" && !next.email && !next.sms && !before.webhook) return { ok: false, code: "no_channel" } as const;
+        if (next.email === before.email && next.sms === before.sms && !addressChanged) return { ok: false, code: "unchanged" } as const;
+        await updateNotificationState(scoped, session.clientId, next);
+        await writeAudit(scoped, {
+          actorType: "client_user", actorId: session.userId, action: "client.notification_settings_changed", entityType: "client", entityId: session.clientId,
+          before: { notify_email: before.email, notify_sms: before.sms, contact_email: before.contactEmail, contact_phone_set: before.contactPhone !== null },
+          after: { notify_email: next.email, notify_sms: next.sms, contact_email: next.contactEmail, contact_phone_set: next.contactPhone !== null, address_changed: addressChanged },
+          requestId,
+        });
+        return { ok: true } as const;
+      });
+    },
+
+    // ---- Where and what it covers: read-only, with a way to ask (slice 5) ----
+
+    serviceAreas(session: ClientSession): Promise<ServiceAreaView> {
+      return withClientScope(db, session.clientId, (scoped) => getServiceAreaView(scoped, session.clientId));
+    },
+
+    myChangeRequests(session: ClientSession): Promise<ChangeRequestRow[]> {
+      return withClientScope(db, session.clientId, (scoped) => listChangeRequests(scoped, session.clientId, 20));
+    },
+
+    /** A business asks staff to change its coverage or services. At most five open at once, so a stuck page cannot flood the queue. */
+    async requestChange(session: ClientSession, fields: Record<string, string | undefined>, requestId: string): Promise<{ ok: true } | { ok: false; code: "forbidden" | "invalid" | "too_many"; errors?: Record<string, string> }> {
+      if (session.role === "agent") return { ok: false, code: "forbidden" };
+      const parsed = parseChangeRequest(fields);
+      if (!parsed.ok) return { ok: false, code: "invalid", errors: parsed.errors as Record<string, string> };
+      return withClientScope(db, session.clientId, async (scoped) => {
+        // Serialise this business's requests so two at once cannot both pass the limit.
+        await scoped.selectFrom("clients").select("id").where("id", "=", session.clientId).forUpdate().executeTakeFirst();
+        if ((await countOpenChangeRequestsFor(scoped, session.clientId)) >= 5) return { ok: false, code: "too_many" } as const;
+        const id = await insertChangeRequest(scoped, { clientId: session.clientId, kind: parsed.value.kind, message: parsed.value.message, requestedBy: session.userId });
+        await writeAudit(scoped, { actorType: "client_user", actorId: session.userId, action: "client.change_requested", entityType: "client", entityId: session.clientId, after: { request_id: id, kind: parsed.value.kind }, requestId });
+        return { ok: true } as const;
+      });
+    },
+
+    /** Staff: what businesses have asked for, and marking one done (after making the change on the client page). */
+    openChangeRequests: (clientId?: string) => listOpenChangeRequests(db, clientId),
+    openChangeRequestCount: () => countOpenChangeRequests(db),
+    async markChangeRequestDone(input: { operator: Operator; requestId: string; requestRef: string }): Promise<{ ok: true; clientId: string } | { ok: false; code: "not_found" }> {
+      if (!/^[0-9a-f-]{36}$/i.test(input.requestId)) return { ok: false, code: "not_found" };
+      return db.transaction().execute(async (trx) => {
+        const done = await markChangeRequestDone(trx, input.requestId, input.operator.id);
+        if (!done) return { ok: false, code: "not_found" } as const;
+        await writeAudit(trx, { actorId: input.operator.id, action: "client.change_request_done", entityType: "client", entityId: done.clientId, after: { request_id: input.requestId }, requestId: input.requestRef });
+        return { ok: true, clientId: done.clientId } as const;
+      });
+    },
+
+    // ---- Counts (slice 5) ----
+
+    /** Money-related figures are withheld for an agent here, not just hidden by the page. */
+    async performance(session: ClientSession, days: number): Promise<PerformanceRow & { moneyHidden: boolean }> {
+      const window = [7, 30, 90].includes(days) ? days : 30;
+      const row = await withClientScope(db, session.clientId, (scoped) => getPerformance(scoped, session.clientId, window));
+      const moneyHidden = session.role === "agent";
+      return moneyHidden ? { ...row, wonValuePence: 0, spendPence: 0, moneyHidden } : { ...row, moneyHidden };
+    },
+
     /** Accept a lead the business holds. */
     accept(session: ClientSession, assignmentId: string, requestId: string): Promise<AssignmentResult<{ alreadyAccepted: boolean }>> {
       return assignments.acceptByBusiness({ clientId: session.clientId, clientUserId: session.userId, assignmentId, requestId });

@@ -19,6 +19,7 @@ import {
   updateClientFromForm,
   type ClientOutcome,
 } from "@/server/admin/clients";
+import { markRequestDoneFromForm } from "@/server/admin/requests";
 import { changeBillingMode, postClientCredit, type BillingOutcome } from "@/server/admin/billing";
 import { inviteClientUser, resendClientUserLink, setClientUserDisabled, setClientUserRole, type UserOutcome } from "@/server/admin/users";
 
@@ -51,6 +52,11 @@ export async function postCreditAction(form: FormData): Promise<void> {
 }
 export async function changeBillingModeAction(form: FormData): Promise<void> {
   redirect(billingOutcome(await changeBillingMode(form)));
+}
+
+export async function markRequestDoneAction(form: FormData): Promise<void> {
+  const outcome = await markRequestDoneFromForm(form);
+  redirect((outcome.ok ? detail(outcome.clientId, "notice=request_done") : "/admin/clients?error=not_found") as Route);
 }
 
 export async function createClientAction(_previous: FormState, form: FormData): Promise<FormState> {

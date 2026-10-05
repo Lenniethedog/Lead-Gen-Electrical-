@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { loadOpenDisputeCount } from "@/server/admin/disputes";
 import { loadOperatorEmail } from "@/server/admin/inbox";
+import { loadOpenRequestCount } from "@/server/admin/requests";
 
 // Never indexed, never cached: the response carries personal data and is for named operators only.
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const email = await loadOperatorEmail();
   const openDisputes = await loadOpenDisputeCount();
+  const openRequests = await loadOpenRequestCount();
   return (
     <div className="min-h-dvh bg-stone-50">
       <header className="border-b border-stone-200 bg-white">
@@ -24,6 +26,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
               <Link key={href} href={href} className="font-semibold text-brand-800 underline underline-offset-4">
                 {label}
                 {href === "/admin/disputes" && openDisputes > 0 ? ` (${openDisputes})` : ""}
+                {href === "/admin/clients" && openRequests > 0 ? ` (${openRequests})` : ""}
               </Link>
             ))}
           </nav>

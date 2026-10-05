@@ -97,3 +97,46 @@ export async function withdrawDisputeFromForm(form: FormData): Promise<AnswerOut
   const result = await getContainer().disputes.withdraw(session, disputeId, newRequestId());
   return result.ok ? { ok: true, assignmentId, notice: "withdrawn" } : { ok: false, assignmentId, error: result.code };
 }
+
+// ---- How it is told, what it covers, how it is doing (slice 5) ----
+
+/** The notification page is for owners and managers. `canChangeAddress` is true only for an owner. Undefined means "no such page". */
+export async function loadNotificationPage() {
+  const session = await requireClientSession();
+  if (session.role === "agent") return undefined;
+  const settings = await getContainer().portal.notificationSettings(session);
+  return settings && { settings, canChangeAddress: session.role === "owner" };
+}
+
+export type SettingsOutcome = { ok: true } | { ok: false; error: string };
+
+export async function saveNotificationSettingsFromForm(form: FormData): Promise<SettingsOutcome> {
+  const session = await requireClientSession();
+  const result = await getContainer().portal.saveNotificationSettings(
+    session,
+    { contactEmail: field(form, "contactEmail"), contactPhone: field(form, "contactPhone"), notifyEmail: field(form, "notifyEmail"), notifySms: field(form, "notifySms") },
+    newRequestId(),
+  );
+  if (result.ok) return { ok: true };
+  if (result.code === "invalid") return { ok: false, error: result.errors?.contactEmail ? "invalid_email" : "invalid_phone" };
+  return { ok: false, error: result.code };
+}
+
+export async function loadServiceAreaPage() {
+  const session = await requireClientSession();
+  const portal = getContainer().portal;
+  const [view, requests] = await Promise.all([portal.serviceAreas(session), portal.myChangeRequests(session)]);
+  return { view, requests, canRequest: session.role !== "agent" };
+}
+
+export async function requestChangeFromForm(form: FormData): Promise<SettingsOutcome> {
+  const session = await requireClientSession();
+  const result = await getContainer().portal.requestChange(session, { kind: field(form, "kind"), message: field(form, "message") }, newRequestId());
+  if (result.ok) return { ok: true };
+  return { ok: false, error: result.code === "invalid" ? (result.errors?.message ? "invalid_message" : "invalid_kind") : result.code };
+}
+
+export async function loadPerformance(days: number) {
+  const session = await requireClientSession();
+  return getContainer().portal.performance(session, days);
+}
