@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/leadgen_ci
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      # Cloudflare's public always-pass Turnstile test keys (refused automatically in staging/production).
+      TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+      TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+    steps:
+      # Action versions are pinned to majors known to work; refresh them periodically (Dependabot).
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint (includes the architecture boundary rules)
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Create database, migrate, seed
+        run: |
+          psql "postgres://postgres:postgres@localhost:5432/postgres" -c "create database leadgen_ci"
+          npm run db:setup
+          npm run db:seed -- --dev-postcodes
+
+      - name: Generated DB types match the migrated schema
+        run: npm run db:types:check
+
+      - name: Unit, component and integration tests (real PostgreSQL)
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: End-to-end tests (real browser, production build)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

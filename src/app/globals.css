@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. Every text/background pair used on the site meets WCAG AA (4.5:1) contrast:
+ *   ink on white 17:1 · muted on white 7.5:1 · white on brand-700 5.2:1 · error on white 6.9:1
+ * The system font stack is deliberate: zero font downloads, no layout shift, instant first paint.
+ */
+@theme {
+  --color-ink: #1c1917;
+  --color-muted: #57534e;
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-300: #fdba74;
+  --color-brand-700: #c2410c;
+  --color-brand-800: #9a3412;
+  --color-brand-900: #7c2d12;
+  --color-error: #b91c1c;
+  --color-success: #15803d;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+}
+
+/* Keep in-page jumps (error summary links, "Start" CTA) clear of the sticky header. */
+:target {
+  scroll-margin-top: 5rem;
+}
