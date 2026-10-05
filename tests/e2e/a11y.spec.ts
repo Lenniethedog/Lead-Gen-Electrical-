@@ -14,12 +14,20 @@ test.describe("accessibility (WCAG 2.2 AA via axe)", () => {
     await expectNoViolations(page, "landing");
   });
 
-  test("landing page shows where we cover, as a picture and as text", async ({ page }) => {
+  test("landing page shows where we cover on a real map, numbered, with the same information as text", async ({ page }) => {
     await page.goto("/");
-    const section = page.getByRole("region", { name: "Where we cover" });
-    await expect(section.getByRole("img", { name: /Schematic map of the towns we cover/ })).toBeVisible();
-    await expect(section.getByText("Orpington", { exact: true })).toHaveCount(2); // on the map and in the list
-    await expect(section.getByText("BR5, BR6")).toBeVisible();
+    const section = page.getByRole("region", { name: /Local roofers across/ });
+    await expect(section.getByRole("region", { name: /Map of the areas we cover/ })).toBeVisible();
+    await expect(section.getByRole("link", { name: /OpenStreetMap contributors/ })).toHaveAttribute("href", "https://www.openstreetmap.org/copyright");
+    const list = section.getByRole("list", { name: "The areas on the map" });
+    await expect(list.getByRole("listitem")).toHaveCount(13);
+    await expect(list.getByText("Bexleyheath", { exact: true })).toBeVisible();
+    await expect(list.getByText("DA6, DA7")).toBeVisible();
+    await expect(list.getByText("Sidcup", { exact: true })).toBeVisible();
+    await expect(list.getByText("SE9")).toBeVisible();
+    // The map is our own file: the page never asks a map provider for anything.
+    const foreign = await page.evaluate(() => performance.getEntriesByType("resource").map((entry) => new URL(entry.name).origin).filter((origin) => origin !== location.origin && !origin.includes("challenges.cloudflare.com")));
+    expect(foreign).toEqual([]);
   });
 
   const steps: Array<[number, string, Record<string, unknown>]> = [

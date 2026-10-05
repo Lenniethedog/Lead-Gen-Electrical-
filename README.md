@@ -3,8 +3,8 @@
 Captures consumer enquiries for a local service niche, screens and stores them reliably, and (in later
 stages) routes each one to the right local business and delivers it within seconds.
 
-**Launch assumption (the brief had unfilled placeholders):** roofing contractors in Orpington, Bromley,
-Sevenoaks and North Kent. The niche and footprint are configuration, not architecture; see
+**Launch assumption (the brief had unfilled placeholders):** roofing contractors across South East London
+(Bromley, Bexley and the nearest SE postcodes), North Kent and Sevenoaks. The niche and footprint are configuration, not architecture; see
 [docs/00-assumptions-and-decisions.md](docs/00-assumptions-and-decisions.md).
 
 ## Status
@@ -51,7 +51,7 @@ Validation and coverage use the ONS Postcode Directory (Open Government Licence)
 "ONS Postcode Directory" from the ONS Open Geography Portal, unzip, then:
 
 ```bash
-npm run postcodes:import -- path/to/ONSPD_AUG_2026_UK.csv --areas BR,DA,TN --edition 2026-08
+npm run postcodes:import -- path/to/ONSPD_AUG_2026_UK.csv --areas BR,DA,TN,SE --edition 2026-08
 npm run postcodes:import -- path/to/ONSPD_AUG_2026_UK.csv --dry-run     # parse and count only
 ```
 

@@ -65,7 +65,7 @@ All are documented in `.env.example`. Secrets live in the platform's secret stor
    - web: build `npm run build`; start `npm start`; **pre-deploy command** `npm run db:setup` (migrations then idempotent seeds, with `DATABASE_MIGRATION_URL` set to the owner connection); health check path `/api/ready`.
    - worker: start command `npm run worker`; no public domain; **no health-check path** (it serves no HTTP). Restart policy: always (a crash must restart it).
    - Postgres: private networking only; no public TCP proxy.
-3. **Postcode data.** `npm run postcodes:import -- <ONSPD file> --areas BR,DA,TN --edition <yyyy-mm>` (see README). `/api/ready` stays not-ready until it is loaded.
+3. **Postcode data.** `npm run postcodes:import -- <ONSPD file> --areas BR,DA,TN,SE --edition <yyyy-mm>` (see README). `/api/ready` stays not-ready until it is loaded.
 4. **Cloudflare Access for the admin host.** Zero Trust > Access > Applications > Add > Self-hosted. Application domain `admin.<your-domain>`. Policy: **Allow**, include only the operators' email addresses (or your identity provider's group), and **require MFA**. This is where MFA for staff is enforced: the app cannot see whether a second factor was used (D19 in docs/00), so verification #15 below is not optional. Use the identity provider's own MFA, or Access's setting that requires it **[unverified: the exact option name]**. Session duration: choose deliberately (longer is friendlier on a phone, shorter is safer). After saving:
    - **Audience tag**: the application's Overview page -> "Application Audience (AUD) Tag" -> `CF_ACCESS_AUD`.
    - **Team domain**: `<team>.cloudflareaccess.com` -> `CF_ACCESS_TEAM_DOMAIN`.

@@ -1,49 +1,77 @@
-import { COVERAGE_MAP_AREAS, projectAreas } from "@/config/coverage-map";
+import Image from "next/image";
+import { projectAreas } from "@/config/coverage-map";
+import { Eyebrow } from "./Eyebrow";
 
 /**
- * A schematic of the towns we cover. Drawn here from the same area list as the postcode check, with no map tiles, scripts or
- * third-party requests (a tile server would receive every visitor's IP address). It is deliberately not a boundary map:
- * the postcode checker is the authority on whether an address is covered, and the text list below is the accessible version.
+ * Where we cover, on a real street map. The picture is built once from OpenStreetMap data (`npm run map:build`) and served from this site, so a
+ * visitor's browser contacts no map provider (nothing about them leaves the site). The numbered circles are drawn over it from the same area list
+ * the postcode checker uses (a test fails if the two drift apart). They show roughly where we cover, never a boundary: the postcode checker is the authority.
+ * The numbered list beside the map is the accessible version of the same information.
  */
 export function CoverageMap({ launchRegion }: { launchRegion: string }) {
-  const { width, height, points } = projectAreas(COVERAGE_MAP_AREAS);
+  const { width, height, areas } = projectAreas();
   return (
-    <section aria-labelledby="coverage-heading" className="bg-brand-50 py-14">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_24rem] lg:items-center">
-        <figure className="rounded-2xl bg-white p-3 ring-1 ring-stone-200 sm:p-5">
-          <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby="coverage-map-title" className="h-auto w-full">
-            <title id="coverage-map-title">Schematic map of the towns we cover, from Bromley in the west to Gravesend in the east</title>
-            <rect x="0" y="0" width={width} height={height} rx="16" className="fill-stone-50" />
-            {points.map(({ area, x, y }) => (
-              <g key={area.slug}>
-                <circle cx={x} cy={y} r="46" className="fill-brand-100 stroke-brand-700" strokeWidth="2" />
-                <circle cx={x} cy={y} r="5" className="fill-brand-700" />
-                <text x={x} y={y + 66} textAnchor="middle" className="fill-ink text-[17px] font-bold">
-                  {area.name}
-                </text>
-              </g>
-            ))}
-            <text x={width - 14} y={height - 12} textAnchor="end" className="fill-muted text-[12px]">
-              Schematic, not to scale
-            </text>
-          </svg>
-        </figure>
+    <section id="coverage" aria-labelledby="coverage-heading" className="bg-white py-16 sm:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <Eyebrow>Areas we cover</Eyebrow>
+        <h2 id="coverage-heading" className="mt-2 max-w-3xl text-3xl font-semibold text-ink sm:text-4xl">
+          Local roofers across {launchRegion}
+        </h2>
+        <p className="mt-3 max-w-2xl text-lg text-muted">
+          Find your town on the map, or just enter your postcode in the form and we will tell you straight away whether we can help.
+        </p>
 
-        <div>
-          <h2 id="coverage-heading" className="text-3xl font-extrabold tracking-tight">
-            Where we cover
-          </h2>
-          <p className="mt-3 text-muted">
-            We currently serve {launchRegion}. Enter your postcode in the form to check your address.
-          </p>
-          <ul className="mt-5 space-y-2">
-            {COVERAGE_MAP_AREAS.map((area) => (
-              <li key={area.slug} className="flex flex-wrap gap-x-2">
-                <span className="font-bold">{area.name}</span>
-                <span className="text-muted">{area.districts.join(", ")}</span>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_21rem]">
+          <figure className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,36,56,0.06),0_12px_32px_-14px_rgba(15,36,56,0.28)] ring-1 ring-stone-200">
+            <div
+              tabIndex={0}
+              role="region"
+              aria-label="Map of the areas we cover. On a small screen, swipe sideways to see all of it."
+              className="overflow-x-auto focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-brand-300"
+            >
+              <div className="relative min-w-[720px]">
+                <Image src="/images/coverage-map.webp" alt="" width={width} height={height} sizes="(min-width: 1024px) 800px, 720px" className="block h-auto w-full" />
+                <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true" className="absolute inset-0 size-full">
+                  {areas.flatMap(({ area, circles }) =>
+                    circles.map((circle, index) => (
+                      <circle key={`${area.slug}-${index}`} cx={circle.x} cy={circle.y} r={circle.r} fill="var(--color-brand-600)" fillOpacity="0.1" stroke="var(--color-brand-700)" strokeWidth="3.5" />
+                    )),
+                  )}
+                  {areas.flatMap(({ area, number, badges }) =>
+                    badges.map((badge, index) => (
+                      <g key={`${area.slug}-badge-${index}`}>
+                        <circle cx={badge.x} cy={badge.y} r="23" fill="var(--color-navy-900)" stroke="#ffffff" strokeWidth="4" />
+                        <text x={badge.x} y={badge.y} textAnchor="middle" dominantBaseline="central" fill="#ffffff" fontSize="25" fontWeight="700" style={{ fontFamily: "var(--font-sans)" }}>
+                          {number}
+                        </text>
+                      </g>
+                    )),
+                  )}
+                </svg>
+              </div>
+            </div>
+            <p className="border-t border-stone-200 px-4 py-2 text-xs font-medium text-muted md:hidden">Swipe the map sideways to see all of it.</p>
+            <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-stone-200 px-4 py-2.5 text-xs text-muted">
+              <span>The circles show roughly where we cover, not exact boundaries.</span>
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="rounded underline underline-offset-2 hover:text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
+                Map © OpenStreetMap contributors
+              </a>
+            </figcaption>
+          </figure>
+
+          <ol aria-label="The areas on the map" className="grid content-start gap-1.5 rounded-2xl bg-canvas p-3 ring-1 ring-stone-200 sm:grid-cols-2 lg:grid-cols-1">
+            {areas.map(({ area, number }) => (
+              <li key={area.slug} className="flex items-start gap-3 rounded-xl px-2.5 py-2">
+                <span aria-hidden="true" className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-navy-900 text-sm font-bold text-white">
+                  {number}
+                </span>
+                <span>
+                  <span className="block font-semibold leading-tight text-ink">{area.name}</span>
+                  <span className="block text-sm text-muted">{area.districts.join(", ")}</span>
+                </span>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
       </div>
     </section>

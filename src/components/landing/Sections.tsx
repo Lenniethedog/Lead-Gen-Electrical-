@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { SERVICE_SLUGS, SERVICES } from "@/config/verticals/roofing";
 import type { Brand } from "@/config/brand";
+import { Eyebrow } from "./Eyebrow";
+import { CheckIcon, ServiceIcon } from "./icons";
 
 /**
  * Below-the-fold content. Every claim here is a statement about how the service works, never a
@@ -16,22 +18,23 @@ export function HowItWorks() {
     { title: "They get in touch", body: "They contact you to discuss the work and give you a quote. There's no obligation." },
   ];
   return (
-    <section aria-labelledby="how-heading" className="bg-stone-50 py-14">
+    <section id="how" aria-labelledby="how-heading" className="bg-canvas py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 id="how-heading" className="text-3xl font-extrabold tracking-tight">
+        <Eyebrow>Simple and free</Eyebrow>
+        <h2 id="how-heading" className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">
           How it works
         </h2>
-        <ol className="mt-8 grid gap-6 md:grid-cols-3">
+        <ol className="mt-10 grid gap-5 md:grid-cols-3">
           {steps.map((step, index) => (
-            <li key={step.title} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
-              <span
-                aria-hidden="true"
-                className="grid size-10 place-items-center rounded-full bg-brand-700 text-lg font-bold text-white"
-              >
+            <li key={step.title} className="relative overflow-hidden rounded-2xl bg-white p-7 shadow-[0_1px_2px_rgba(15,36,56,0.06),0_8px_24px_-12px_rgba(15,36,56,0.18)] ring-1 ring-stone-200">
+              <span aria-hidden="true" className="absolute -right-2 -top-5 font-display text-[7rem] font-semibold leading-none text-brand-100">
                 {index + 1}
               </span>
-              <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
-              <p className="mt-2 text-muted">{step.body}</p>
+              <span aria-hidden="true" className="relative grid size-11 place-items-center rounded-full bg-navy-800 font-display text-lg font-semibold text-white">
+                {index + 1}
+              </span>
+              <h3 className="relative mt-5 text-xl font-semibold text-ink">{step.title}</h3>
+              <p className="relative mt-2 text-muted">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -42,19 +45,29 @@ export function HowItWorks() {
 
 export function ServicesList() {
   return (
-    <section aria-labelledby="services-heading" className="py-14">
+    <section aria-labelledby="services-heading" className="bg-white py-16 sm:py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 id="services-heading" className="text-3xl font-extrabold tracking-tight">
+        <Eyebrow>What we can help with</Eyebrow>
+        <h2 id="services-heading" className="mt-2 max-w-2xl text-3xl font-semibold text-ink sm:text-4xl">
           Roofing work we can help you find a roofer for
         </h2>
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICE_SLUGS.filter((slug) => slug !== "other").map((slug) => (
-            <li key={slug} className="rounded-2xl p-5 ring-1 ring-stone-200">
-              <h3 className="text-lg font-bold">{SERVICES[slug].label}</h3>
-              <p className="mt-1 text-muted">{SERVICES[slug].hint}</p>
+            <li key={slug} className="group flex gap-4 rounded-2xl bg-canvas p-5 ring-1 ring-stone-200 transition-shadow hover:shadow-md motion-reduce:transition-none">
+              <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-white text-brand-700 shadow-sm ring-1 ring-stone-200">
+                <ServiceIcon slug={slug} className="size-6" />
+              </span>
+              <div>
+                <h3 className="text-lg font-semibold text-ink">{SERVICES[slug].label}</h3>
+                <p className="mt-1 text-muted">{SERVICES[slug].hint}</p>
+              </div>
             </li>
           ))}
         </ul>
+        <p className="mt-6 flex items-center gap-2 text-muted">
+          <CheckIcon className="size-5 text-success" />
+          Not on the list? Choose &ldquo;something else&rdquo; on the form and tell us about it.
+        </p>
       </div>
     </section>
   );
@@ -100,20 +113,21 @@ export function Faq({ brand }: { brand: Brand }) {
   ];
 
   return (
-    <section aria-labelledby="faq-heading" className="bg-stone-50 py-14">
+    <section id="faq" aria-labelledby="faq-heading" className="bg-canvas py-16 sm:py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <h2 id="faq-heading" className="text-3xl font-extrabold tracking-tight">
+        <Eyebrow>Good to know</Eyebrow>
+        <h2 id="faq-heading" className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">
           Questions you might have
         </h2>
-        <div className="mt-8 divide-y divide-stone-200 rounded-2xl bg-white ring-1 ring-stone-200">
+        <div className="mt-8 divide-y divide-stone-200 rounded-2xl bg-white shadow-[0_8px_24px_-12px_rgba(15,36,56,0.18)] ring-1 ring-stone-200">
           {items.map((item) => (
-            <details key={item.question} className="group p-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-bold focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
+            <details key={item.question} className="group p-5 sm:px-7">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-lg text-lg font-semibold text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300 [&::-webkit-details-marker]:hidden">
                 {item.question}
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 20 20"
-                  className="size-5 shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                  className="size-5 shrink-0 text-brand-700 transition-transform group-open:rotate-180 motion-reduce:transition-none"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -132,9 +146,10 @@ export function Faq({ brand }: { brand: Brand }) {
 
 export function Footer({ brand }: { brand: Brand }) {
   return (
-    <footer className="border-t border-stone-200 bg-white py-10 text-sm text-muted">
+    <footer className="bg-navy-950 py-12 text-sm text-navy-200">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <p className="font-semibold text-ink">{brand.legalName}</p>
+        <p className="font-display text-lg font-semibold text-white">{brand.name}</p>
+        <p className="mt-3 font-semibold text-navy-100">{brand.legalName}</p>
         <p className="mt-1">
           Registered in England and Wales, company number {brand.companyNumber}. Registered office: {brand.registeredAddress}.
         </p>
@@ -142,11 +157,11 @@ export function Footer({ brand }: { brand: Brand }) {
         <p className="mt-1">
           {brand.name} is an introduction service. We are not a roofing company and do not carry out roofing work.
         </p>
-        <nav aria-label="Legal" className="mt-4 flex gap-5">
-          <Link href="/privacy" className="font-semibold text-ink underline">
+        <nav aria-label="Legal" className="mt-5 flex gap-6">
+          <Link href="/privacy" className="font-semibold text-white underline underline-offset-4 hover:text-brand-300">
             Privacy Notice
           </Link>
-          <Link href="/terms" className="font-semibold text-ink underline">
+          <Link href="/terms" className="font-semibold text-white underline underline-offset-4 hover:text-brand-300">
             Terms of use
           </Link>
         </nav>

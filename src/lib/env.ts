@@ -22,7 +22,7 @@ const DEV_BRAND = {
   BRAND_REGISTERED_ADDRESS: "1 Placeholder Street, Orpington, Kent, BR0 0XX (placeholder)",
   BRAND_ICO_REGISTRATION: "ZA000000 (placeholder)",
   BRAND_PRIVACY_EMAIL: "privacy@example.com",
-  BRAND_LAUNCH_REGION: "Orpington, Bromley, Sevenoaks and North Kent",
+  BRAND_LAUNCH_REGION: "South East London, North Kent and Sevenoaks",
 } as const;
 
 /** Cloudflare's published dummy Turnstile keys (always pass / always fail / forced challenge). */

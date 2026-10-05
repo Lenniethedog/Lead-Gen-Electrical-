@@ -31,9 +31,12 @@
     "postcodes:import": "tsx scripts/import-onspd.ts",
     "ops:email-smoke": "tsx scripts/email-smoke.ts",
     "ops:sentry-smoke": "tsx scripts/sentry-smoke.ts",
-    "ops:replay-erasures": "tsx scripts/replay-erasures.ts"
+    "ops:replay-erasures": "tsx scripts/replay-erasures.ts",
+    "map:build": "tsx scripts/build-coverage-map.ts"
   },
   "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
     "@next/env": "16.3.8",
     "@sentry/node": "^11.4.0",
     "disposable-email-domains-js": "^1.26.0",

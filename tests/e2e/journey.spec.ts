@@ -86,7 +86,7 @@ test.describe("consumer journey", () => {
     await startForm(page);
     await chooseTile(page, SERVICE);
     await page.getByLabel("Property postcode").fill("SW1A 1AA");
-    await expect(page.getByText(/Sorry, we don't cover SW1A 1AA yet\. We currently cover Orpington/).first()).toBeVisible();
+    await expect(page.getByText(/Sorry, we don't cover SW1A 1AA yet\. We currently cover South East London/).first()).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByRole("heading", { name: "Where is the work needed?" })).toBeVisible();
   });

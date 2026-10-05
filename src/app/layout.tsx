@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { getBrand } from "@/config/brand";
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource-variable/fraunces/wght.css";
 import "./globals.css";
 
 export function generateMetadata(): Metadata {
@@ -26,7 +28,7 @@ export function generateMetadata(): Metadata {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#c2410c",
+  themeColor: "#0f2438",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

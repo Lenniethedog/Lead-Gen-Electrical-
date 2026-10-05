@@ -1,21 +1,54 @@
 @import "tailwindcss";
 
 /*
- * Design tokens. Every text/background pair used on the site meets WCAG AA (4.5:1) contrast:
- *   ink on white 17:1 · muted on white 7.5:1 · white on brand-700 5.2:1 · error on white 6.9:1
- * The system font stack is deliberate: zero font downloads, no layout shift, instant first paint.
+ * Design tokens. Every text/background pair used on the site meets WCAG AA (4.5:1); measured:
+ *   ink on white 15.8:1 · ink on canvas 14.2:1 · muted on white 7.3:1 · muted on canvas 6.6:1 · white on copper-700 5.7:1
+ *   copper-800 on white 7.7:1 · white on navy-800 13.2:1 · copper-300 on navy-900 8.8:1 · navy-100 on navy-900 12.6:1
+ * Palette: deep navy (trust, the weight of the page), terracotta copper (the colour of a roof tile; used for every action) and warm paper.
+ * Fonts are self-hosted by the build (@fontsource): no request to Google or any CDN at runtime, and only the Latin subset a visitor
+ * needs is downloaded. Fraunces (a soft, warm serif) for headlines, Inter for everything else.
  */
 @theme {
-  --color-ink: #1c1917;
-  --color-muted: #57534e;
-  --color-brand-50: #fff7ed;
-  --color-brand-100: #ffedd5;
-  --color-brand-300: #fdba74;
-  --color-brand-700: #c2410c;
-  --color-brand-800: #9a3412;
-  --color-brand-900: #7c2d12;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+
+  --color-ink: #0f2438;
+  --color-muted: #46586a;
+  --color-canvas: #f6f2eb;
+
+  --color-navy-50: #f1f5f9;
+  --color-navy-100: #dbe7f2;
+  --color-navy-200: #b9c9da;
+  --color-navy-600: #2b5a85;
+  --color-navy-700: #1f4468;
+  --color-navy-800: #16324d;
+  --color-navy-900: #0f2438;
+  --color-navy-950: #0a1a2b;
+
+  --color-brand-50: #fdf5ee;
+  --color-brand-100: #fbe7d9;
+  --color-brand-300: #f2b48a;
+  --color-brand-600: #c4501f;
+  --color-brand-700: #b4411a;
+  --color-brand-800: #94330f;
+  --color-brand-900: #6b2610;
+
   --color-error: #b91c1c;
   --color-success: #15803d;
+
+  /* Warm neutrals for surfaces and hairlines, matching the paper background (borders and form outlines keep the default darker greys). */
+  --color-stone-50: #f8f5ef;
+  --color-stone-100: #efeae1;
+  --color-stone-200: #e3ddd1;
+}
+
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
 }
 
 :root {
@@ -34,6 +67,7 @@ html {
 
 body {
   background: #ffffff;
+  -webkit-font-smoothing: antialiased;
   color: var(--color-ink);
 }
 
