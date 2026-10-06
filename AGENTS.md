@@ -89,5 +89,11 @@ never edit a published version. Do not add non-essential cookies or third-party 
 **Before you say it is done:** `npm run check` (needs `TEST_DATABASE_URL`, see README), and for UI/API changes
 `npm run build && npm run test:e2e`. Report anything you could not run.
 
-**Local gotchas.** Port 3000 may be taken by an unrelated app: run on another port and set `APP_URL` to match. The project folder
-name currently ends in a space, which works but is fragile.
+**Electrical rules (this is the electrical fork of the roofing platform: read UPSTREAM.md before porting a fix).**
+- Never claim a business is registered, vetted, approved or accredited (NICEIC, NAPIT, "Part P", "competent person") until registrations are recorded and checked by us (decision E4). The site only tells consumers how to check.
+- The emergency advice (`src/config/safety.ts`, `SafetyNote`) comes before the form, on the "when" question and in the FAQ (E3). Re-check the numbers and the wording on any copy change, and keep the one-line version short: on a phone the first question must stay on the first screen (an e2e test asserts it).
+- Electrical decisions are numbered **E1-E5**, roofing's stay D1-D67 and boilers' B1-B5, so they never collide when a fix is ported. `src/config/no-roofing.test.ts` fails if roofing wording reaches the application.
+- Own ports: web 3300, end-to-end 3310, key server 3399, PostgreSQL cluster 54349 (`npm run db:local`, database `electrical_dev`). Roofing, boilers and the CRM use others: never point this project at their databases.
+- Never push to the `roofing` remote (it exists only to fetch fixes). `origin` is `Lenniethedog/Lead-Gen-Electrical-`.
+
+**Local gotchas.** Port 3300 may be taken: run on another port and set `APP_URL` to match. Zsh does not word-split `$VAR`.

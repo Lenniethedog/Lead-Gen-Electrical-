@@ -18,7 +18,7 @@ beforeAll(async () => {
   t = await createTestDatabase();
   s = buildStage3(t);
   ops = await s.operator("assign@example.com");
-  br6Client = await s.activeClient(ops, { name: "BR6 Roofing" });
+  br6Client = await s.activeClient(ops, { name: "BR6 Electrical" });
   await s.setPrice(ops, 3500);
 });
 afterAll(async () => {
@@ -187,7 +187,7 @@ describe("sending, cancelling and moving a lead", () => {
   });
 
   it("REASSIGN moves the lead to another business in one step: the old hold ends with a mandatory reason, the new begins, the lead stays assigned", async () => {
-    const second = await s.activeClient(ops, { name: "Second Roofing" });
+    const second = await s.activeClient(ops, { name: "Second Electrical" });
     const l = await lead();
     const first = await assign(l.id);
     if (!first.ok) throw new Error("setup");
@@ -281,7 +281,7 @@ describe("candidates and the handover message", () => {
     const firstIneligible = candidates.clients.findIndex((client) => !client.eligible);
     expect(candidates.clients.slice(0, firstIneligible).every((client) => client.eligible)).toBe(true);
     expect(candidates.clients.find((client) => client.clientId === elsewhere)).toMatchObject({ eligible: false, reasons: ["no_include_rule_matches"] });
-    expect(names).toContain("BR6 Roofing");
+    expect(names).toContain("BR6 Electrical");
     expect(await s.assignments.candidates(crypto.randomUUID())).toBeUndefined();
   });
 
@@ -296,7 +296,7 @@ describe("candidates and the handover message", () => {
     expect(message.text).toContain("Raw Fixture");
     expect(message.text).toContain("BR6 0AA");
     expect(message.text).toContain("sent to you only");
-    expect(message.to).toMatch(/@roofer\.example$/);
+    expect(message.to).toMatch(/@electrician\.example$/);
 
     await s.assignments.cancel({ operator: ops, assignmentId: a.assignmentId, reason: "client_declined", requestId: s.rid() });
     expect(await s.assignments.handover(a.assignmentId)).toBeUndefined(); // no longer held: no details
@@ -311,7 +311,7 @@ describe("what an operator sees for a lead", () => {
     if (!first.ok) throw new Error("setup");
     await s.assignments.reassign({ operator: ops, assignmentId: first.assignmentId, toClientId: other, reason: "wrong_area", requestId: s.rid() });
     const views = await s.assignments.forLead(l.id);
-    expect(views.map((view) => [view.clientName, view.status, view.active])).toEqual([["Viewer Two", "reserved", true], ["BR6 Roofing", "cancelled", false]]);
+    expect(views.map((view) => [view.clientName, view.status, view.active])).toEqual([["Viewer Two", "reserved", true], ["BR6 Electrical", "cancelled", false]]);
     expect(views[1]!.history.map((entry) => [entry.to, entry.actor, entry.reason])).toEqual([["reserved", "assign@example.com", "manual_assignment"], ["cancelled", "assign@example.com", "wrong_area"]]);
   });
 });

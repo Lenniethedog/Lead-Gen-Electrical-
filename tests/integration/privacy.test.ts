@@ -29,7 +29,7 @@ beforeAll(async () => {
   s = buildStage3(t);
   staff = await s.operator("staff@example.com", "staff");
   owner = await s.operator("owner@example.com", "owner");
-  br6Client = await s.activeClient(owner, { name: "Holder Roofing" });
+  br6Client = await s.activeClient(owner, { name: "Holder Electrical" });
   await s.setPrice(owner, 3500);
 });
 afterAll(async () => {
@@ -88,7 +88,7 @@ describe("withdrawing consent", () => {
     expect(result).toMatchObject({ ok: true, alreadyDone: false });
     if (!result.ok) return;
     expect(result.notify).toHaveLength(1);
-    expect(result.notify[0]).toMatchObject({ clientId: br6Client, clientName: "Holder Roofing", status: "notified", reference: l.reference });
+    expect(result.notify[0]).toMatchObject({ clientId: br6Client, clientName: "Holder Electrical", status: "notified", reference: l.reference });
 
     expect(await t.admin.selectFrom("lead_assignments").select("status").where("lead_id", "=", l.id).executeTakeFirstOrThrow()).toEqual({ status: "cancelled" });
     const history = await t.admin.selectFrom("lead_assignment_status_history").selectAll().where("assignment_id", "=", assigned.assignmentId).orderBy("id").execute();
@@ -177,7 +177,7 @@ describe("erasing a lead", () => {
     const assigned = await s.assignments.assign({ operator: staff, leadId: l.id, clientId: br6Client, requestId: s.rid() });
     if (!assigned.ok) throw new Error("setup");
     const result = await s.privacy.erase({ operator: owner, leadId: l.id, reason: "consumer_request", requestId: s.rid() });
-    expect(result).toMatchObject({ ok: true, notify: [{ clientId: br6Client, clientName: "Holder Roofing" }] });
+    expect(result).toMatchObject({ ok: true, notify: [{ clientId: br6Client, clientName: "Holder Electrical" }] });
     expect(await leadRow(l.id)).toMatchObject({ status: "invalid", assignments_count: 0 });
     expect((await t.admin.selectFrom("lead_assignment_status_history").selectAll().where("assignment_id", "=", assigned.assignmentId).orderBy("id").execute()).at(-1)).toMatchObject({ to_status: "cancelled", reason: "erasure_request", actor_id: owner.id });
   });

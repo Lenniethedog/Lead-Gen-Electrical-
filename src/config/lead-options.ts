@@ -24,7 +24,7 @@ export const OWNERSHIPS: Record<Ownership, { label: string; hint?: string }> = {
 export const URGENCY_VALUES = ["emergency", "within_2_weeks", "within_1_month", "just_planning"] as const;
 export type Urgency = (typeof URGENCY_VALUES)[number];
 export const URGENCIES: Record<Urgency, { label: string; hint?: string }> = {
-  emergency: { label: "Urgent", hint: "It's leaking or unsafe right now" },
+  emergency: { label: "Urgent", hint: "There's no power, or it feels unsafe right now" },
   within_2_weeks: { label: "Within 2 weeks" },
   within_1_month: { label: "Within a month" },
   just_planning: { label: "Just planning", hint: "Comparing options and prices" },

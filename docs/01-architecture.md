@@ -175,7 +175,7 @@ src/
   server/                 Composition root (container.ts: the ONE place implementations are chosen) + HTTP handlers + db accessor
     admin/                the data-access layer for the inbox: authenticates (requireOperator) and validates on every call
   lib/                    Foundations: env (validated), db client, http helpers, logging, ip trust, rate limiter, ids, hashing, errors
-  config/                 Decisions as code: brand, roofing vertical, consent wording, fraud weights, retention periods
+  config/                 Decisions as code: brand, electrical vertical, consent wording, fraud weights, retention periods
   workers/                the worker process (stage 2): main.ts entrypoint, the control loop, the LISTEN connection
   integrations/           adapters behind interfaces: email/ (Resend, console) in stage 2; twilio and stripe later
 db/migrations/            SQL, roll-forward only        db/seeds/   idempotent reference data

@@ -1,6 +1,6 @@
 import * as z from "zod";
 import { OWNERSHIP_VALUES, PROPERTY_TYPE_VALUES, URGENCY_VALUES } from "@/config/lead-options";
-import { SERVICE_SLUGS, isValidScope, type ServiceSlug } from "@/config/verticals/roofing";
+import { SERVICE_SLUGS, isValidScope, type ServiceSlug } from "@/config/verticals/electrical";
 import { normalisePostcode } from "@/modules/postcodes/normalise";
 
 /**

@@ -15,7 +15,7 @@ const entry = { actorId: "11111111-1111-1111-1111-111111111111", action: "client
 describe("writeAudit", () => {
   it("records business facts, serialising before and after", async () => {
     const { db, rows } = recorder();
-    await writeAudit(db, { ...entry, before: { status: "prospect" }, after: { status: "active", contact_email: "roofer@example.com" }, reason: "onboarded", requestId: "req-1" });
+    await writeAudit(db, { ...entry, before: { status: "prospect" }, after: { status: "active", contact_email: "electrician@example.com" }, reason: "onboarded", requestId: "req-1" });
     expect(rows[0]).toMatchObject({ actor_type: "staff_user", action: "client.updated", before: '{"status":"prospect"}', reason: "onboarded", request_id: "req-1" });
   });
 
@@ -31,7 +31,7 @@ describe("writeAudit", () => {
 
   it("allows a client's own business contact fields (they are not consumer data)", async () => {
     const { db, rows } = recorder();
-    await writeAudit(db, { ...entry, after: { contact_email: "roofer@example.com", contact_phone_e164: "+441234567890", contact_name: "Dave" } });
+    await writeAudit(db, { ...entry, after: { contact_email: "electrician@example.com", contact_phone_e164: "+441234567890", contact_name: "Dave" } });
     expect(rows).toHaveLength(1);
   });
 });

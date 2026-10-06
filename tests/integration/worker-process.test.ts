@@ -217,7 +217,7 @@ describe("refusing to start", () => {
   });
 
   it("refuses the console provider in production, where it would silently send nothing", async () => {
-    const worker = startWorkerProcess({ APP_ENV: "production", EMAIL_PROVIDER: "console", APP_URL: "https://www.example-roofing.co.uk" });
+    const worker = startWorkerProcess({ APP_ENV: "production", EMAIL_PROVIDER: "console", APP_URL: "https://www.example-electrical.co.uk" });
     expect((await worker.exited).code).toBe(1);
     expect(worker.output()).toContain("EMAIL_PROVIDER");
   });
@@ -232,13 +232,13 @@ describe("the real worker process routes leads (stage 4)", () => {
     s = buildStage3(t);
     owner = await s.operator("owner@process.test", "owner");
     await s.setPrice(owner);
-    clientId = await s.activeClient(owner, { name: "Process Roofing" });
+    clientId = await s.activeClient(owner, { name: "Process Electrical" });
   });
 
   const switchRouting = async (enabled: boolean) => {
     const { createRoutingService } = await import("../../src/modules/routing");
     const pino = (await import("pino")).default;
-    const routing = createRoutingService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "roofing", isSuppressed: s.privacy.isSuppressed });
+    const routing = createRoutingService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "electrical", isSuppressed: s.privacy.isSuppressed });
     const result = await routing.setEnabled({ operator: owner, enabled, requestId: s.rid() });
     if (!result.ok) throw new Error(result.code);
   };
@@ -321,7 +321,7 @@ describe("the real worker process delivers to a business (stage 5)", () => {
   beforeEach(async () => {
     twilio = await startFakeTwilio();
     receiver = await startWebhookReceiver();
-    const clients = createClientService({ db: t.db, logger: (await import("pino")).default({ level: "silent" }), verticalSlug: "roofing", secretsKey });
+    const clients = createClientService({ db: t.db, logger: (await import("pino")).default({ level: "silent" }), verticalSlug: "electrical", secretsKey });
     clientId = await s.activeClient(owner, { name: `Delivery ${next()}` });
     const rotated = await clients.rotateWebhookSecret({ operator: owner, clientId, requestId: s.rid() });
     if (!rotated.ok) throw new Error(rotated.code);
@@ -363,7 +363,7 @@ describe("the real worker process delivers to a business (stage 5)", () => {
     expect(twilio.messages).toHaveLength(1);
     expect(twilio.messages[0]!.form.Body).toContain(lead.reference);
     expect(twilio.messages[0]!.form.StatusCallback).toMatch(/\/api\/webhooks\/twilio$/);
-    expect(fake.delivered.some((mail) => mail.body.text?.includes(lead.reference) && mail.body.to?.[0]?.endsWith("@roofer.example"))).toBe(true);
+    expect(fake.delivered.some((mail) => mail.body.text?.includes(lead.reference) && mail.body.to?.[0]?.endsWith("@electrician.example"))).toBe(true);
     expect(receiver.requests).toHaveLength(1);
     const call = receiver.requests[0]!;
     expect(verifyWebhookSignature(secret, Number(call.headers["x-leadgen-timestamp"]), call.body, String(call.headers["x-leadgen-signature"]))).toBe(true);

@@ -42,7 +42,7 @@ export async function buildDelivery() {
 
   const secretsKey = randomBytes(32);
   const logger = pino({ level: "silent" });
-  const clients = createClientService({ db: t.db, logger, verticalSlug: "roofing", secretsKey });
+  const clients = createClientService({ db: t.db, logger, verticalSlug: "electrical", secretsKey });
   const email = new ScriptedSender();
   const sms = new ScriptedChannel<{ to: string; body: string; notificationId: string }>();
   const webhook = new ScriptedChannel<{ url: string; secret: string; body: string; deliveryId: string; event: string }>();
@@ -50,7 +50,7 @@ export async function buildDelivery() {
   const make = (db = t.db): DeliveryService =>
     createDeliveryService({ db, logger, senders: { email, sms, webhook }, config: { brandName: "Test Brand", leaseSeconds: 60, sendTimeoutMs: 2_000, batchSize: 5, secretsKey }, random: () => 0.5 });
   const delivery = make();
-  const routing: RoutingService = createRoutingService({ db: t.db, logger, verticalSlug: "roofing", isSuppressed: s.privacy.isSuppressed });
+  const routing: RoutingService = createRoutingService({ db: t.db, logger, verticalSlug: "electrical", isSuppressed: s.privacy.isSuppressed });
 
   async function automaticClient(by: Operator, options: { email?: boolean; sms?: boolean; webhook?: boolean; name?: string; outward?: string[]; phone?: boolean } = {}): Promise<string> {
     const id = await s.activeClient(by, { name: options.name, outward: options.outward });

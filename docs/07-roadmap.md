@@ -14,8 +14,8 @@ flowchart LR
 ```
 
 **Business gates** (suggested thresholds, set your own numbers): *Gate A* after stage 2, spend a small test budget with manual fulfilment and
-compute **cost per lead, valid-lead rate and what a roofer will actually pay per lead they judge good**. If cost per good lead is not comfortably
-below price, no amount of engineering fixes it: change targeting/offer first. *Gate B* after stage 3: at least one roofer paying per lead and giving
+compute **cost per lead, valid-lead rate and what a electrician will actually pay per lead they judge good**. If cost per good lead is not comfortably
+below price, no amount of engineering fixes it: change targeting/offer first. *Gate B* after stage 3: at least one electrician paying per lead and giving
 outcome feedback; only then build automatic routing.
 
 ---
@@ -48,7 +48,7 @@ outcome feedback; only then build automatic routing.
   - **Backups**: `scripts/backup.sh` (dump, verify, checksum, encrypt, copy) and `scripts/restore-drill.sh` (restore into a scratch database and compare with the source).
   - **Runbook** (`docs/runbook.md`): provisioning Railway, Cloudflare Access, Resend, Sentry and the uptime monitors; first-run verification; incident procedures.
 - **Why:** it makes stage 1 usable: the first leads can be sold by hand over WhatsApp, validating the business before any marketplace code exists.
-- **Not built yet because it needs something only you can provide:** a Resend (or other email) account and a verified sending domain; Railway and Cloudflare provisioned; a domain; a Sentry project; an uptime monitor; the real company details and the solicitor's sign-off (`LEGAL_TEXT_REVIEWED`); the first roofers. None of the code assumes a particular answer, and the production configuration refuses to start without the settings these need.
+- **Not built yet because it needs something only you can provide:** a Resend (or other email) account and a verified sending domain; Railway and Cloudflare provisioned; a domain; a Sentry project; an uptime monitor; the real company details and the solicitor's sign-off (`LEGAL_TEXT_REVIEWED`); the first electrical businesses. None of the code assumes a particular answer, and the production configuration refuses to start without the settings these need.
 - **Acceptance, as verified locally (see 06-operations.md for how and what the numbers mean):**
   - *lead -> operator email p95 < 10 s*: measured at 12 ms (p50) and 16 ms (p95) of our own overhead with a zero-latency provider, and 266 / 271 ms with a 250 ms provider, one lead every 2 s. **The real figure is that plus the provider's latency and the network distance, which were not measurable here.**
   - *kill the worker mid-send and the alert is still delivered exactly once or retried, never lost*: a real worker process is `SIGKILL`ed while the provider has accepted the email but not yet answered; a replacement worker reclaims the lease and retries with the same idempotency key, and the provider ends with exactly one email (tested at process level, mutation-checked). This holds because the retry's payload is identical (the provider only deduplicates identical payloads: see D-notes in 00, section 3); a retry whose payload still differs rotates the key and may duplicate one email, never lose it. **Timing in production:** the stranded alert is retried after its lease expires (60 s) at the next reconciler tick (15 s), so at most about 75 s late; the tests shorten the lease to 3 s.
@@ -61,7 +61,7 @@ outcome feedback; only then build automatic routing.
 
 ## Stage 3: Clients, coverage and manual assignment: **BUILT** (code verified locally; Gate A is yours to run)
 
-**Gate A (a small paid test with real roofers) is a business test only you can run, and nothing in stage 3 depends on its result**, so it was built without waiting. What stage 3 buys regardless of the outcome: a record of which business received which lead (the consent allows one, and a data-subject request needs the answer), and the rules the first manual sales will teach.
+**Gate A (a small paid test with real electrical businesses) is a business test only you can run, and nothing in stage 3 depends on its result**, so it was built without waiting. What stage 3 buys regardless of the outcome: a record of which business received which lead (the consent allows one, and a data-subject request needs the answer), and the rules the first manual sales will teach.
 
 - **Built:**
   - **Clients** (`/admin/clients`): create and edit a business, give it services and **coverage rules** (postcode district, sector, prefix, named area, radius from a postcode; include or exclude), and move it through `prospect / active / paused / suspended / churned`. A client cannot become `active` without at least one service and one include rule, and cannot lose its last one while active. Pausing, suspending and churning need a reason from a closed list.
@@ -86,7 +86,7 @@ outcome feedback; only then build automatic routing.
 
 ## Stage 4: Automatic routing engine: **BUILT** (code verified locally; **Gate B was not passed first**)
 
-You asked for stage 4 before a roofer was paying. It is built so that being wrong about the defaults is cheap: **routing is off until an owner switches it on**, every rule is editable data, and every decision (and non-decision) can be explained. Treat the default rules as a first guess to correct with what the first real roofers tell you.
+You asked for stage 4 before a electrician was paying. It is built so that being wrong about the defaults is cheap: **routing is off until an owner switches it on**, every rule is editable data, and every decision (and non-decision) can be explained. Treat the default rules as a first guess to correct with what the first real electrical businesses tell you.
 
 - **Built:**
   - **The router** (`src/modules/routing`, run by the worker): claims the oldest routable lead, decides and assigns in **one transaction under one advisory lock** (decision D27, a deliberate simplification of the design below: no lease, no sweeper, no per-client locks), re-checks the chosen business just before assigning, and records a **run** for every attempt: the rules in force, a verdict and rank for every business that covers the lead, the price, how long it took.

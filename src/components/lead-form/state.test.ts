@@ -25,11 +25,11 @@ describe("step navigation", () => {
 
 describe("patching values", () => {
   it("resets the scope when the service changes, but not when it is re-selected", () => {
-    let state = apply(fresh(), { type: "patch", patch: { service: "roof_repair" } }, { type: "patch", patch: { scope: "leak" } });
-    expect(state.values.scope).toBe("leak");
-    state = reducer(state, { type: "patch", patch: { service: "roof_repair" } });
-    expect(state.values.scope).toBe("leak");
-    state = reducer(state, { type: "patch", patch: { service: "new_roof" } });
+    let state = apply(fresh(), { type: "patch", patch: { service: "fault_repair" } }, { type: "patch", patch: { scope: "no_power" } });
+    expect(state.values.scope).toBe("no_power");
+    state = reducer(state, { type: "patch", patch: { service: "fault_repair" } });
+    expect(state.values.scope).toBe("no_power");
+    state = reducer(state, { type: "patch", patch: { service: "rewire" } });
     expect(state.values.scope).toBeNull();
   });
 
@@ -102,11 +102,11 @@ describe("routing server validation errors to the right step", () => {
 describe("firstIncompleteStep", () => {
   const complete: FormValues = {
     ...EMPTY_VALUES,
-    service: "roof_repair",
+    service: "fault_repair",
     postcode: "br6 0aa",
     propertyType: "house",
     ownership: "owner",
-    scope: "leak",
+    scope: "no_power",
     urgency: "emergency",
   };
 
@@ -120,7 +120,7 @@ describe("firstIncompleteStep", () => {
     [{ propertyType: null }, 2],
     [{ ownership: null }, 2],
     [{ scope: null }, 3],
-    [{ scope: "full_replacement" }, 3], // belongs to a different service
+    [{ scope: "full_rewire" }, 3], // belongs to a different service
     [{ urgency: null }, 4],
   ] as const)("finds the step for %j", (patch, step) => {
     expect(firstIncompleteStep({ ...complete, ...patch })).toBe(step);

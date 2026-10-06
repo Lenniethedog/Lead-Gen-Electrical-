@@ -26,8 +26,8 @@ describe("stableStringify", () => {
 
 describe("fingerprint", () => {
   it("is a 64 char hex sha256 and equal for equivalent payloads", () => {
-    const a = fingerprint({ service: "roof_repair", phone: "+447911100001" });
-    const b = fingerprint({ phone: "+447911100001", service: "roof_repair" });
+    const a = fingerprint({ service: "fault_repair", phone: "+447911100001" });
+    const b = fingerprint({ phone: "+447911100001", service: "fault_repair" });
     expect(a).toMatch(/^[0-9a-f]{64}$/);
     expect(a).toBe(b);
   });

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Starts/stops an isolated, throw-away PostgreSQL cluster for local development WITHOUT Docker.
 # It never touches a system/Homebrew Postgres service: data lives in .local/pgdata (gitignored)
-# and it listens only on 127.0.0.1:${LEADGEN_PGPORT:-54329}.
+# and it listens only on 127.0.0.1:${LEADGEN_PGPORT:-54349}.
 #
 #   npm run db:local            # start (creates the cluster on first run)
 #   npm run db:local -- stop
@@ -17,7 +17,7 @@ export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA_DIR="${LEADGEN_PGDATA:-$ROOT/.local/pgdata}"
-PORT="${LEADGEN_PGPORT:-54329}"
+PORT="${LEADGEN_PGPORT:-54349}"
 LOG_FILE="$DATA_DIR/server.log"
 
 need() {
@@ -53,11 +53,11 @@ case "$cmd" in
     else
       # Empty unix_socket_directories => TCP only, nothing written outside the data dir.
       pg_ctl -D "$DATA_DIR" -l "$LOG_FILE" -w \
-        -o "-p $PORT -c listen_addresses=127.0.0.1 -c unix_socket_directories= -c fsync=on" start >/dev/null
+        -o "-p $PORT -c listen_addresses=127.0.0.1 -c unix_socket_directories= -c fsync=on -c max_connections=200" start >/dev/null
       echo "started on 127.0.0.1:$PORT"
     fi
-    create_db_if_missing leadgen_dev
-    echo "DATABASE_URL=postgres://postgres@127.0.0.1:$PORT/leadgen_dev"
+    create_db_if_missing electrical_dev
+    echo "DATABASE_URL=postgres://postgres@127.0.0.1:$PORT/electrical_dev"
     echo "TEST_DATABASE_URL=postgres://postgres@127.0.0.1:$PORT/postgres"
     ;;
   stop)

@@ -25,10 +25,10 @@ const rid = () => `req-${crypto.randomUUID().slice(0, 8)}`;
 beforeAll(async () => {
   t = await createTestDatabase();
   portal = createPortalService({ db: t.db, logger: pino({ level: "silent" }), assignments: buildStage3(t).assignments });
-  const ca = await insertRawClient(t.admin, { name: "Alpha Roofing" });
-  const cb = await insertRawClient(t.admin, { name: "Bravo Roofing" });
-  a = { id: ca.id, session: sessionFor(ca.id, "Alpha Roofing") };
-  b = { id: cb.id, session: sessionFor(cb.id, "Bravo Roofing") };
+  const ca = await insertRawClient(t.admin, { name: "Alpha Electrical" });
+  const cb = await insertRawClient(t.admin, { name: "Bravo Electrical" });
+  a = { id: ca.id, session: sessionFor(ca.id, "Alpha Electrical") };
+  b = { id: cb.id, session: sessionFor(cb.id, "Bravo Electrical") };
   const la = await insertRawLead(t.admin, {});
   const lb = await insertRawLead(t.admin, {});
   const aa = await insertRawAssignment(t.admin, la.id, { clientId: a.id, status: "notified" });

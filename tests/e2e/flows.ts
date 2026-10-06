@@ -26,7 +26,7 @@ export async function expectNoViolations(page: Page, label: string) {
 export async function createActiveClient(page: Page, name: string, outward = "BR6") {
   await page.goto("/admin/clients/new");
   await page.getByLabel("Business name").fill(name);
-  await page.getByLabel("Their email").fill(`${name.toLowerCase().replace(/[^a-z0-9]/g, "")}@roofer.example`);
+  await page.getByLabel("Their email").fill(`${name.toLowerCase().replace(/[^a-z0-9]/g, "")}@electrician.example`);
   await page.getByLabel("Who to send leads to").fill("Dave");
   await page.getByLabel(/Their phone/).fill("07911 123456");
   await page.getByRole("button", { name: "Create client" }).click();
@@ -57,7 +57,7 @@ export async function routeNow(): Promise<{ routed: number; assigned: number; un
   try {
     const logger = pino({ level: "silent" });
     const privacy = createPrivacyService({ db, logger, hashKey: DEV_PRIVACY_HASH_KEY });
-    const routing = createRoutingService({ db, logger, verticalSlug: "roofing", isSuppressed: privacy.isSuppressed });
+    const routing = createRoutingService({ db, logger, verticalSlug: "electrical", isSuppressed: privacy.isSuppressed });
     return await routing.drain();
   } finally {
     await db.destroy();
@@ -81,7 +81,7 @@ export async function deliverNow(options: { smsFails?: boolean } = {}): Promise<
         sms: { send: async () => ((calls.sms += 1), options.smsFails ? { outcome: "permanent_failure", errorCode: "twilio_21211", httpStatus: 400 } : accepted()) },
         webhook: { send: async () => ((calls.webhook += 1), { outcome: "accepted" }) },
       },
-      config: { brandName: "RoofQuote Local", leaseSeconds: 60, sendTimeoutMs: 2_000, batchSize: 5 },
+      config: { brandName: "SparkQuote Local", leaseSeconds: 60, sendTimeoutMs: 2_000, batchSize: 5 },
     });
     for (let i = 0; i < 20 && (await service.processDue()).claimed > 0; i++);
     return calls;
@@ -90,10 +90,10 @@ export async function deliverNow(options: { smsFails?: boolean } = {}): Promise<
   }
 }
 
-/** Makes sure roof repair, urgent leads have a price, so assigning by hand does not ask for one (the most specific rule wins over any other). */
+/** Makes sure electrical fault repair, urgent leads have a price, so assigning by hand does not ask for one (the most specific rule wins over any other). */
 export async function priceForTestLeads(page: Page) {
   await page.goto("/admin/pricing");
-  await page.getByLabel("Service", { exact: true }).selectOption("roof_repair");
+  await page.getByLabel("Service", { exact: true }).selectOption("fault_repair");
   await page.getByLabel("Urgency").selectOption("emergency");
   await page.getByLabel("Price per lead (£)").fill("35");
   await page.getByRole("button", { name: "Save price" }).click();

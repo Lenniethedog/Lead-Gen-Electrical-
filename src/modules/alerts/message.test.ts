@@ -4,7 +4,7 @@ import { buildAlertMessage, type AlertLeadContext } from "./message";
 const lead: AlertLeadContext = {
   leadId: "0b6f6b0e-3a0e-4e55-9c63-1b1b6d3f2a11",
   reference: "L-ABCDE-FGHJK",
-  serviceLabel: "Roof repair or leak",
+  serviceLabel: "Electrical fault or repair",
   postcodeOutward: "BR6",
   urgency: "within_2_weeks",
   fraudScore: 0,
@@ -13,20 +13,20 @@ const lead: AlertLeadContext = {
   createdAt: new Date("2026-07-01T11:30:00Z"),
 };
 const options = {
-  brandName: "Kent Roof Match",
-  adminBaseUrl: "https://admin.kentroofmatch.co.uk",
+  brandName: "Kent Spark Match",
+  adminBaseUrl: "https://admin.kentsparkmatch.co.uk",
   reminderAfterMinutes: 15,
 };
 
 describe("buildAlertMessage", () => {
   it("announces a new lead with only what is needed to decide to go and look", () => {
     const { subject, text } = buildAlertMessage("new_lead", lead, options);
-    expect(subject).toBe("[Kent Roof Match] New lead L-ABCDE-FGHJK - Roof repair or leak - BR6");
+    expect(subject).toBe("[Kent Spark Match] New lead L-ABCDE-FGHJK - Electrical fault or repair - BR6");
     expect(text).toContain("Reference: L-ABCDE-FGHJK");
     expect(text).toContain("Area:      BR6");
     expect(text).toContain("Timing:    Within 2 weeks");
     expect(text).toContain("Screening: Clear");
-    expect(text).toContain("Open the lead:\nhttps://admin.kentroofmatch.co.uk/admin/leads/0b6f6b0e-3a0e-4e55-9c63-1b1b6d3f2a11");
+    expect(text).toContain("Open the lead:\nhttps://admin.kentsparkmatch.co.uk/admin/leads/0b6f6b0e-3a0e-4e55-9c63-1b1b6d3f2a11");
     expect(text).toContain("deliberately contains no contact details");
   });
 
@@ -37,7 +37,7 @@ describe("buildAlertMessage", () => {
   it("marks emergencies as urgent in the subject, where a phone's lock screen will show it", () => {
     const { subject, text } = buildAlertMessage("new_lead", { ...lead, urgency: "emergency" }, options);
     expect(subject.endsWith(" - URGENT")).toBe(true);
-    expect(text).toContain("Timing:    Urgent (It's leaking or unsafe right now)");
+    expect(text).toContain("Timing:    Urgent (There's no power, or it feels unsafe right now)");
   });
 
   it("says a held lead is NOT usable until a human decides, and shows the score", () => {
@@ -54,16 +54,16 @@ describe("buildAlertMessage", () => {
 
   it("says a reminded lead has waited MORE THAN the configured delay (never an exact, changing wait)", () => {
     const { subject, text } = buildAlertMessage("reminder", lead, options);
-    expect(subject).toBe("[Kent Roof Match] Reminder: lead L-ABCDE-FGHJK still waiting (15+ min)");
+    expect(subject).toBe("[Kent Spark Match] Reminder: lead L-ABCDE-FGHJK still waiting (15+ min)");
     expect(text).toContain("waiting more than 15 minutes with no action recorded");
     expect(buildAlertMessage("reminder", lead, { ...options, reminderAfterMinutes: 30 }).subject).toContain("(30+ min)");
   });
 
   it("cannot be used to inject extra email headers, whatever the inputs contain", () => {
-    const hostile = { ...lead, serviceLabel: "Roofing\r\nBcc: attacker@example.com", postcodeOutward: "BR6\nX-Evil: 1" };
+    const hostile = { ...lead, serviceLabel: "Electrical\r\nBcc: attacker@example.com", postcodeOutward: "BR6\nX-Evil: 1" };
     const { subject } = buildAlertMessage("new_lead", hostile, { ...options, brandName: "Brand\r\nCc: x@y.z" });
     expect(subject).not.toMatch(/[\r\n]/);
-    expect(subject).toContain("Roofing Bcc: attacker@example.com");
+    expect(subject).toContain("Electrical Bcc: attacker@example.com");
   });
 
   it("has no way to carry personal data: the input type contains no contact fields", () => {

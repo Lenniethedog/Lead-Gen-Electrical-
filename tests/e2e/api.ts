@@ -17,11 +17,11 @@ export async function createLead(
   const response = await request.post(`${baseURL}/api/v1/leads`, {
     headers: { origin: baseURL, "idempotency-key": crypto.randomUUID(), "user-agent": BROWSER_UA },
     data: {
-      service: options.service ?? "roof_repair",
+      service: options.service ?? "fault_repair",
       postcode: options.postcode ?? "BR6 0AA",
       propertyType: "house",
       ownership: "owner",
-      scope: options.scope ?? "leak",
+      scope: options.scope ?? "no_power",
       urgency: kind === "held" ? "within_2_weeks" : "emergency",
       contact: { name: person.name, phone: person.phone, email: person.email, notes: "Side gate code 4821" },
       consent: { accepted: true, textVersion: version },

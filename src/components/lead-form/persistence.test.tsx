@@ -9,12 +9,12 @@ const form: PersistedForm = {
   startedAt: NOW - 90_000,
   values: {
     ...EMPTY_VALUES,
-    service: "roof_repair",
+    service: "fault_repair",
     postcode: "BR6 0AA",
     coverage: { postcode: "BR6 0AA", areaName: "Orpington" },
     propertyType: "house",
     ownership: "owner",
-    scope: "leak",
+    scope: "no_power",
     name: "Alex",
   },
 };

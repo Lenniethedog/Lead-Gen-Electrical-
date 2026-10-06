@@ -23,14 +23,14 @@ test.describe("consumer journey", () => {
 
     // 4. Scope depends on the service chosen in step 1.
     await expect(page.getByRole("heading", { name: "Which best describes the work?" })).toBeVisible();
-    await chooseTile(page, "The roof is leaking");
+    await chooseTile(page, "Part or all of the property has no power");
 
     // 5. Urgency.
     await expect(page.getByRole("heading", { name: "When would you like the work done?" })).toBeVisible();
     await chooseTile(page, "Within 2 weeks");
 
     // 6. Contact + consent.
-    await expect(page.getByRole("heading", { name: "How can the roofer contact you?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "How can the electrician contact you?" })).toBeVisible();
     await fillContact(page, person);
     // Playwright is faster than any human. Under 10s the anti-bot timing signal would (correctly) hold
     // this lead for review, so pace the run like a person; the machine-speed case has its own test below.
@@ -102,12 +102,12 @@ test.describe("consumer journey", () => {
   test("keyboard users are never moved on unexpectedly: they choose, then press Continue", async ({ page, isMobile }) => {
     test.skip(isMobile, "keyboard navigation is a desktop concern");
     await startForm(page);
-    const radio = page.getByRole("radio", { name: /Roof repair or leak/ });
+    const radio = page.getByRole("radio", { name: /Electrical fault or repair/ });
     await radio.focus();
     await page.keyboard.press("Space");
     await expect(radio).toBeChecked();
     await page.waitForTimeout(700);
-    await expect(page.getByRole("heading", { name: "What roofing work do you need?" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What electrical work do you need?" })).toBeVisible();
 
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByRole("heading", { name: "Where is the work needed?" })).toBeVisible();

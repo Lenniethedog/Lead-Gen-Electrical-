@@ -267,7 +267,7 @@ describe("the remaining invariants", () => {
   });
 
   it("computes the campaign funnel view (spend, leads, CPL, ROAS)", async () => {
-    const campaign = await sql<{ id: string }>`insert into ad_campaigns (platform, external_id, name) values ('google_ads', '123', 'Roof repair BR6') returning id`.execute(pool);
+    const campaign = await sql<{ id: string }>`insert into ad_campaigns (platform, external_id, name) values ('google_ads', '123', 'Fault repair BR6') returning id`.execute(pool);
     const campaignId = campaign.rows[0]!.id;
     const lead = await insertRawLead(t.admin);
     await sql`insert into lead_attributions (lead_id, campaign_id) values (${lead.id}, ${campaignId})`.execute(pool);

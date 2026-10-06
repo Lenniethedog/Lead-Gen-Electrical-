@@ -64,7 +64,7 @@ test.describe("working the inbox", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Leads" })).toBeVisible();
     const row = page.getByRole("row").filter({ hasText: reference });
     await expect(row).toBeVisible();
-    await expect(row).toContainText("Roof repair");
+    await expect(row).toContainText("Electrical fault or repair");
     await expect(row).toContainText("BR6");
     await expect(row).toContainText("Urgent");
     await expect(row).toContainText("Needs action");

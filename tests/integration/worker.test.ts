@@ -296,8 +296,8 @@ describe("routing in the worker (stage 4)", () => {
     stage3 = buildStage3(t);
     owner = await stage3.operator("owner@worker.test", "owner");
     await stage3.setPrice(owner);
-    await stage3.activeClient(owner, { name: "Worker Roofing" });
-    routing = createRoutingService({ db: t.db, logger: silent, verticalSlug: "roofing", isSuppressed: stage3.privacy.isSuppressed });
+    await stage3.activeClient(owner, { name: "Worker Electrical" });
+    routing = createRoutingService({ db: t.db, logger: silent, verticalSlug: "electrical", isSuppressed: stage3.privacy.isSuppressed });
   });
 
   const switchRouting = async (enabled: boolean) => {
@@ -402,7 +402,7 @@ describe("delivery in the worker (stage 5)", () => {
     stage3 = buildStage3(t);
     owner = await stage3.operator("owner@worker-delivery.test", "owner");
     await stage3.setPrice(owner);
-    clientId = await stage3.activeClient(owner, { name: "Texted Roofing" });
+    clientId = await stage3.activeClient(owner, { name: "Texted Electrical" });
     await t.admin.updateTable("clients").set({ delivery_mode: "automatic", delivery_enabled_at: new Date(), notify_email: false, notify_sms: true }).where("id", "=", clientId).execute();
   });
 

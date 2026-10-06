@@ -34,7 +34,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
   if (!adminUrl) {
     throw new Error(
       "TEST_DATABASE_URL is not set. Start a database (npm run db:local, or docker compose up -d db) and " +
-        "set TEST_DATABASE_URL to an admin connection, e.g. postgres://postgres@127.0.0.1:54329/postgres",
+        "set TEST_DATABASE_URL to an admin connection, e.g. postgres://postgres@127.0.0.1:54349/postgres",
     );
   }
 
@@ -65,7 +65,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
 
   const seedDb = createDb({ url: templateUrl, poolMax: 2 });
   try {
-    await seedReferenceData(seedDb, { brandName: "RoofQuote Local", includeDevPostcodes: true });
+    await seedReferenceData(seedDb, { brandName: "SparkQuote Local", includeDevPostcodes: true });
   } finally {
     await seedDb.destroy();
   }

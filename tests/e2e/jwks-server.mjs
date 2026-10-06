@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { exportJWK, generateKeyPair } from "jose";
 
-const port = Number(process.env.E2E_JWKS_PORT ?? 3199);
+const port = Number(process.env.E2E_JWKS_PORT ?? 3399);
 // In the OS temp directory (not test-results/, which CI uploads as an artifact on failure).
 const keyFile = process.env.E2E_ACCESS_KEY_FILE ?? path.join(tmpdir(), "leadgen-e2e-access-key.json");
 

@@ -39,7 +39,7 @@ describe("isOverdue", () => {
 
 describe("mailtoHref", () => {
   it("leaves an ordinary address readable", () => {
-    expect(mailtoHref("jane.o'neil+roofs@example.co.uk")).toBe("mailto:jane.o'neil+roofs@example.co.uk");
+    expect(mailtoHref("jane.o'neil+sparks@example.co.uk")).toBe("mailto:jane.o'neil+sparks@example.co.uk");
   });
 
   it("encodes anything that could start a mailto header or break out of the URL", () => {

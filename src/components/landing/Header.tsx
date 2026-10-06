@@ -1,4 +1,4 @@
-import { RoofMark } from "./icons";
+import { BoltMark } from "./icons";
 
 export function Header({ brandName }: { brandName: string }) {
   return (
@@ -6,7 +6,7 @@ export function Header({ brandName }: { brandName: string }) {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <a href="#top" className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
           <span className="grid size-9 place-items-center rounded-lg bg-brand-700 text-white shadow-sm">
-            <RoofMark className="size-5" />
+            <BoltMark className="size-5" />
           </span>
           <span className="whitespace-nowrap font-display text-xl font-semibold tracking-tight">{brandName}</span>
         </a>

@@ -66,7 +66,7 @@ describe("a successful delivery", () => {
 
     const mail = env.email.calls[0]!;
     expect(mail.to).toHaveLength(1);
-    expect(mail.to[0]).toMatch(/@roofer\.example$/);
+    expect(mail.to[0]).toMatch(/@electrician\.example$/);
     expect(mail.text).toContain("Margaret Oyelaran");
     expect(mail.text).toContain("+447123456789");
     expect(mail.text).toContain("BR6 0AA");

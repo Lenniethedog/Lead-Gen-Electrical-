@@ -17,7 +17,7 @@ export async function buildRouting(options: { price?: number | null } = {}) {
   const routing: RoutingService = createRoutingService({
     db: t.db,
     logger: pino({ level: "silent" }),
-    verticalSlug: "roofing",
+    verticalSlug: "electrical",
     isSuppressed: s.privacy.isSuppressed,
     clock: async () => clock.at ?? new Date(),
   });

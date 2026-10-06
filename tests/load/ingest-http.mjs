@@ -3,7 +3,7 @@
 //   BASE=http://localhost:3101 TOTAL=500 CONCURRENCY=10 node tests/load/ingest-http.mjs
 //
 // !! This CREATES REAL LEADS in whatever database the target server uses. Point it only at a server running
-// against a throw-away database (e.g. CREATE DATABASE leadgen_load TEMPLATE leadgen_dev), never at dev data,
+// against a throw-away database (e.g. CREATE DATABASE electrical_load TEMPLATE electrical_dev), never at dev data,
 // staging that people use, or production. With Cloudflare's test Turnstile key the verification call itself
 // is rate-limited by Cloudflare (observed ~30-60 calls/s), which then dominates: that measures Cloudflare,
 // not us. For OUR capacity use tests/load/ingest-inprocess.mts.
@@ -20,7 +20,7 @@ const TOTAL = Number(process.env.TOTAL ?? 300);
 const CONCURRENCY = Number(process.env.CONCURRENCY ?? 10);
 const START = Number(process.env.START ?? Date.now() % 800000);
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148";
-const services = [["roof_repair", "leak"], ["new_roof", "full_replacement"], ["flat_roof", "replace"], ["chimney", "leadwork"], ["guttering_fascias", "replace"], ["roof_inspection", "condition_survey"]];
+const services = [["fault_repair", "no_power"], ["rewire", "full_rewire"], ["ev_charger", "replace"], ["consumer_unit", "upgrade_consumer_unit"], ["lighting_sockets", "replace"], ["eicr", "periodic_check"]];
 const postcodes = ["BR6 0AA", "BR1 1AA", "TN13 1AA", "DA1 1AA", "BR5 1AA", "DA11 0AA"];
 
 const payload = (n) => {

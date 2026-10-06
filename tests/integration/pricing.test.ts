@@ -10,21 +10,21 @@ let t: TestDatabase;
 let pricing: PricingService;
 let operator: Operator;
 let verticalId: number;
-let roofRepairId: number;
+let faultRepairId: number;
 const rid = () => `req-${crypto.randomUUID().slice(0, 8)}`;
 
 beforeAll(async () => {
   t = await createTestDatabase();
-  pricing = createPricingService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "roofing" });
+  pricing = createPricingService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "electrical" });
   operator = await ensureOperator(t.db, "pricing@example.com");
-  verticalId = (await t.admin.selectFrom("verticals").select("id").where("slug", "=", "roofing").executeTakeFirstOrThrow()).id;
-  roofRepairId = (await t.admin.selectFrom("service_types").select("id").where("slug", "=", "roof_repair").executeTakeFirstOrThrow()).id;
+  verticalId = (await t.admin.selectFrom("verticals").select("id").where("slug", "=", "electrical").executeTakeFirstOrThrow()).id;
+  faultRepairId = (await t.admin.selectFrom("service_types").select("id").where("slug", "=", "fault_repair").executeTakeFirstOrThrow()).id;
 });
 afterAll(async () => {
   await t.destroy();
 });
 
-const facts = (overrides: Partial<LeadPricingFacts> = {}): LeadPricingFacts => ({ verticalId, serviceTypeId: roofRepairId, postcodeOutward: "BR6", urgency: "within_2_weeks", saleType: "exclusive", ...overrides });
+const facts = (overrides: Partial<LeadPricingFacts> = {}): LeadPricingFacts => ({ verticalId, serviceTypeId: faultRepairId, postcodeOutward: "BR6", urgency: "within_2_weeks", saleType: "exclusive", ...overrides });
 const rule = (overrides: Partial<PricingRuleInput> = {}): PricingRuleInput => ({ serviceSlug: null, serviceAreaSlug: null, urgency: null, saleType: "exclusive", pricePence: 3000, ...overrides });
 const set = async (overrides: Partial<PricingRuleInput> = {}) => {
   const result = await pricing.setPrice({ operator, rule: rule(overrides), requestId: rid() });
@@ -42,12 +42,12 @@ describe("the most specific rule wins", () => {
   it("prefers a rule that names more of the lead's attributes", async () => {
     await set({ pricePence: 3000 }); // any service, anywhere, any urgency
     expect(await price()).toBe(3000);
-    await set({ serviceSlug: "roof_repair", pricePence: 3500 });
+    await set({ serviceSlug: "fault_repair", pricePence: 3500 });
     expect(await price()).toBe(3500);
     await set({ serviceAreaSlug: "orpington", pricePence: 3800 }); // anywhere-service, Orpington: 1 attribute, same as the service rule
-    await set({ serviceSlug: "roof_repair", urgency: "within_2_weeks", pricePence: 4200 });
+    await set({ serviceSlug: "fault_repair", urgency: "within_2_weeks", pricePence: 4200 });
     expect(await price()).toBe(4200); // 2 attributes beats 1
-    await set({ serviceSlug: "roof_repair", serviceAreaSlug: "orpington", urgency: "within_2_weeks", pricePence: 5000 });
+    await set({ serviceSlug: "fault_repair", serviceAreaSlug: "orpington", urgency: "within_2_weeks", pricePence: 5000 });
     expect(await price()).toBe(5000); // 3 beats 2
     // Different facts fall back to less specific rules. The service-only and Orpington-only rules are equally specific (one
     // attribute each), so the NEWER one (Orpington, £38) wins; the any-service rule (£30) loses to both.
@@ -74,13 +74,13 @@ describe("the most specific rule wins", () => {
 
   it("breaks ties by priority, then by the newest rule", async () => {
     await reset();
-    const older = await set({ serviceSlug: "roof_repair", pricePence: 3100 });
+    const older = await set({ serviceSlug: "fault_repair", pricePence: 3100 });
     await new Promise((resolve) => setTimeout(resolve, 5));
     // A second CURRENT rule of the same scope can only exist outside setPrice (which ends the old one); insert it directly.
-    await t.admin.insertInto("pricing_rules").values({ vertical_id: verticalId, service_type_id: roofRepairId, sale_type: "exclusive", price_pence: 3200 }).execute();
+    await t.admin.insertInto("pricing_rules").values({ vertical_id: verticalId, service_type_id: faultRepairId, sale_type: "exclusive", price_pence: 3200 }).execute();
     expect(await price()).toBe(3200); // newest wins
     await t.admin.updateTable("pricing_rules").set({ priority: 0 }).where("id", "=", older).execute().catch(() => undefined);
-    await t.admin.insertInto("pricing_rules").values({ vertical_id: verticalId, service_type_id: roofRepairId, sale_type: "exclusive", price_pence: 3300, priority: 10 }).execute();
+    await t.admin.insertInto("pricing_rules").values({ vertical_id: verticalId, service_type_id: faultRepairId, sale_type: "exclusive", price_pence: 3300, priority: 10 }).execute();
     expect(await price()).toBe(3300); // higher priority beats newer
   });
 
@@ -100,8 +100,8 @@ describe("the most specific rule wins", () => {
 describe("setting a price replaces the old one without losing it", () => {
   it("ends the current rule for the scope, keeps it in the history, and audits the change", async () => {
     await reset();
-    const first = await set({ serviceSlug: "roof_repair", pricePence: 3500 });
-    const second = await set({ serviceSlug: "roof_repair", pricePence: 3900 });
+    const first = await set({ serviceSlug: "fault_repair", pricePence: 3500 });
+    const second = await set({ serviceSlug: "fault_repair", pricePence: 3900 });
     expect(await price()).toBe(3900);
 
     const rows = await t.admin.selectFrom("pricing_rules").select(["id", "price_pence"]).select(sql<boolean>`upper(valid_during) is null`.as("current")).orderBy("created_at").execute();
@@ -109,25 +109,25 @@ describe("setting a price replaces the old one without losing it", () => {
     const entry = (await t.admin.selectFrom("audit_logs").selectAll().where("entity_id", "=", second).executeTakeFirstOrThrow());
     expect(entry).toMatchObject({ action: "pricing.rule_created", actor_id: operator.id });
     expect(entry.before).toEqual({ ended_rules: [{ id: first, price_pence: 3500 }] });
-    expect(entry.after).toMatchObject({ service: "roof_repair", price_pence: 3900, sale_type: "exclusive" });
+    expect(entry.after).toMatchObject({ service: "fault_repair", price_pence: 3900, sale_type: "exclusive" });
   });
 
   it("leaves other scopes alone", async () => {
     await reset();
-    await set({ serviceSlug: "roof_repair", pricePence: 3500 });
-    await set({ serviceSlug: "flat_roof", pricePence: 5500 });
-    await set({ serviceSlug: "roof_repair", pricePence: 3700 });
+    await set({ serviceSlug: "fault_repair", pricePence: 3500 });
+    await set({ serviceSlug: "ev_charger", pricePence: 5500 });
+    await set({ serviceSlug: "fault_repair", pricePence: 3700 });
     const current = await t.admin.selectFrom("pricing_rules").select("price_pence").where(sql<boolean>`upper(valid_during) is null`).orderBy("price_pence").execute();
     expect(current.map((row) => row.price_pence)).toEqual([3700, 5500]);
   });
 
   it("RACE: a change whose transaction began BEFORE a committed one still ends it (the clock is read after the lock, not at BEGIN)", async () => {
     await reset();
-    const scope = { verticalId, serviceTypeId: roofRepairId, serviceAreaId: null, urgency: null, saleType: "exclusive" as const };
+    const scope = { verticalId, serviceTypeId: faultRepairId, serviceAreaId: null, urgency: null, saleType: "exclusive" as const };
     await t.db.transaction().execute(async (early) => {
       await sql`select now()`.execute(early); // this transaction's now() is fixed here...
       await new Promise((resolve) => setTimeout(resolve, 30));
-      await set({ serviceSlug: "roof_repair", pricePence: 3100 }); // ...and a later one commits a rule first
+      await set({ serviceSlug: "fault_repair", pricePence: 3100 }); // ...and a later one commits a rule first
       await lockPricingScope(early, scope);
       const at = await pricingMoment(early);
       const ended = await endRulesWithScope(early, scope, at);
@@ -140,14 +140,14 @@ describe("setting a price replaces the old one without losing it", () => {
 
   it("RACE: 8 simultaneous price changes for one scope leave exactly one current rule", async () => {
     await reset();
-    await Promise.all(Array.from({ length: 8 }, (_, i) => pricing.setPrice({ operator, rule: rule({ serviceSlug: "roof_repair", pricePence: 3000 + i }), requestId: rid() })));
+    await Promise.all(Array.from({ length: 8 }, (_, i) => pricing.setPrice({ operator, rule: rule({ serviceSlug: "fault_repair", pricePence: 3000 + i }), requestId: rid() })));
     const current = await t.admin.selectFrom("pricing_rules").select("id").where(sql<boolean>`upper(valid_during) is null`).execute();
     expect(current).toHaveLength(1);
     expect((await t.admin.selectFrom("pricing_rules").select("id").execute())).toHaveLength(8); // nothing lost
   });
 
   it("refuses unknown services and areas", async () => {
-    expect(await pricing.setPrice({ operator, rule: rule({ serviceSlug: "moon_roofing" }), requestId: rid() })).toEqual({ ok: false, code: "unknown_service" });
+    expect(await pricing.setPrice({ operator, rule: rule({ serviceSlug: "moon_electrical" }), requestId: rid() })).toEqual({ ok: false, code: "unknown_service" });
     expect(await pricing.setPrice({ operator, rule: rule({ serviceAreaSlug: "narnia" }), requestId: rid() })).toEqual({ ok: false, code: "unknown_area" });
   });
 });
@@ -165,8 +165,8 @@ describe("ending a rule", () => {
 
   it("lists rules with current ones first and says which are ended", async () => {
     await reset();
-    const old = await set({ serviceSlug: "roof_repair", pricePence: 3500 });
-    await set({ serviceSlug: "roof_repair", pricePence: 3900 });
+    const old = await set({ serviceSlug: "fault_repair", pricePence: 3500 });
+    await set({ serviceSlug: "fault_repair", pricePence: 3900 });
     const { rules } = await pricing.list();
     expect(rules.map((entry) => [entry.pricePence, entry.state])).toEqual([[3900, "current"], [3500, "ended"]]);
     expect(rules.find((entry) => entry.id === old)!.validTo).toBeInstanceOf(Date);

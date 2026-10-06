@@ -14,23 +14,23 @@ let t: TestDatabase;
 let clients: ClientService;
 let operator: Operator;
 let verticalId: number;
-let roofRepairId: number;
-let flatRoofId: number;
+let faultRepairId: number;
+let evChargerId: number;
 const requestId = () => `req-${crypto.randomUUID().slice(0, 8)}`;
 
 beforeAll(async () => {
   t = await createTestDatabase();
-  clients = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "roofing" });
+  clients = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "electrical" });
   operator = await ensureOperator(t.db, "coverage@example.com");
-  verticalId = (await t.admin.selectFrom("verticals").select("id").where("slug", "=", "roofing").executeTakeFirstOrThrow()).id;
-  roofRepairId = (await t.admin.selectFrom("service_types").select("id").where("slug", "=", "roof_repair").executeTakeFirstOrThrow()).id;
-  flatRoofId = (await t.admin.selectFrom("service_types").select("id").where("slug", "=", "flat_roof").executeTakeFirstOrThrow()).id;
+  verticalId = (await t.admin.selectFrom("verticals").select("id").where("slug", "=", "electrical").executeTakeFirstOrThrow()).id;
+  faultRepairId = (await t.admin.selectFrom("service_types").select("id").where("slug", "=", "fault_repair").executeTakeFirstOrThrow()).id;
+  evChargerId = (await t.admin.selectFrom("service_types").select("id").where("slug", "=", "ev_charger").executeTakeFirstOrThrow()).id;
 });
 afterAll(async () => {
   await t.destroy();
 });
 
-const query = (overrides: Partial<CoverageQuery> = {}): CoverageQuery => ({ postcode: "BR6 0AA", verticalId, serviceTypeId: roofRepairId, saleType: "exclusive", ...overrides });
+const query = (overrides: Partial<CoverageQuery> = {}): CoverageQuery => ({ postcode: "BR6 0AA", verticalId, serviceTypeId: faultRepairId, saleType: "exclusive", ...overrides });
 
 async function makeClient(
   name: string,
@@ -42,7 +42,7 @@ async function makeClient(
     .set({ accepts_exclusive: options.acceptsExclusive ?? true, accepts_shared: true })
     .where("id", "=", raw.id)
     .execute();
-  await clients.setServices({ operator, clientId: raw.id, serviceSlugs: options.services ?? ["roof_repair"], requestId: requestId() });
+  await clients.setServices({ operator, clientId: raw.id, serviceSlugs: options.services ?? ["fault_repair"], requestId: requestId() });
   for (const rule of options.rules ?? []) {
     const result = await clients.addRule({ operator, clientId: raw.id, rule, requestId: requestId() });
     // (The random generator below may produce the same rule twice; the unique index correctly refuses the repeat.)
@@ -76,7 +76,7 @@ describe("which clients may receive a lead", () => {
     const excluded = await makeClient("excluded", { rules: [include({ kind: "outward", outward: "BR6" }), exclude({ kind: "sector", sector: "BR6 0" })] });
     const wrongPlace = await makeClient("wrong place", { rules: [include({ kind: "outward", outward: "TN13" })] });
     const paused = await makeClient("paused", { status: "paused", rules: [include({ kind: "outward", outward: "BR6" })] });
-    const noService = await makeClient("no service", { services: ["flat_roof"], rules: [include({ kind: "outward", outward: "BR6" })] });
+    const noService = await makeClient("no service", { services: ["ev_charger"], rules: [include({ kind: "outward", outward: "BR6" })] });
     const sharedOnly = await makeClient("shared only", { acceptsExclusive: false, rules: [include({ kind: "outward", outward: "BR6" })] });
 
     const expectedExclusive = new Set([byOutward, bySector, byPrefix, byArea, byRadiusIn]);
@@ -84,7 +84,7 @@ describe("which clients may receive a lead", () => {
     // For a SHARED lead the shared-only client becomes eligible too.
     expect(await eligibleIds(query({ saleType: "shared" }))).toEqual(new Set([...expectedExclusive, sharedOnly]));
     // A different service changes who qualifies.
-    expect(await eligibleIds(query({ serviceTypeId: flatRoofId }))).toEqual(new Set([noService]));
+    expect(await eligibleIds(query({ serviceTypeId: evChargerId }))).toEqual(new Set([noService]));
 
     // The tester says why, for each of them, and agrees with the query.
     const explanation = await explainCoverage(t.db, query());
@@ -102,7 +102,7 @@ describe("which clients may receive a lead", () => {
   });
 
   it("lists EVERY failing reason, not just the first", async () => {
-    const id = await makeClient("everything wrong", { status: "paused", services: ["flat_roof"], acceptsExclusive: false, rules: [include({ kind: "outward", outward: "TN13" })] });
+    const id = await makeClient("everything wrong", { status: "paused", services: ["ev_charger"], acceptsExclusive: false, rules: [include({ kind: "outward", outward: "TN13" })] });
     const explanation = await explainCoverage(t.db, query(), { clientId: id });
     if (explanation.status !== "ok") throw new Error("unexpected");
     expect(explanation.clients).toHaveLength(1);
@@ -191,7 +191,7 @@ describe("the tester can never disagree with the query routing uses (property te
       await makeClient(`random ${i}`, {
         status: random() < 0.8 ? "active" : pick(["paused", "prospect"] as const),
         acceptsExclusive: random() < 0.8,
-        services: random() < 0.15 ? ["flat_roof"] : random() < 0.2 ? ["roof_repair", "flat_roof"] : ["roof_repair"],
+        services: random() < 0.15 ? ["ev_charger"] : random() < 0.2 ? ["fault_repair", "ev_charger"] : ["fault_repair"],
         rules,
       });
     }
@@ -199,7 +199,7 @@ describe("the tester can never disagree with the query routing uses (property te
     let comparisons = 0;
     for (const postcode of targets) {
       for (const saleType of ["exclusive", "shared"] as const) {
-        for (const serviceTypeId of [roofRepairId, flatRoofId]) {
+        for (const serviceTypeId of [faultRepairId, evChargerId]) {
           const q = query({ postcode, saleType, serviceTypeId });
           const fromQuery = await eligibleIds(q);
           const explanation = await explainCoverage(t.db, q);

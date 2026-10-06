@@ -23,7 +23,7 @@ export function CoverageMap({ launchRegion }: { launchRegion: string }) {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Eyebrow>Areas we cover</Eyebrow>
         <h2 id="coverage-heading" className="mt-2 max-w-3xl text-3xl font-semibold text-ink sm:text-4xl">
-          Local roofers across {launchRegion}
+          Local electricians across {launchRegion}
         </h2>
         <p className="mt-3 max-w-2xl text-lg text-muted">
           Find your town on the map, or just enter your postcode in the form and we will tell you straight away whether we can help.

@@ -9,17 +9,17 @@ export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL(brand.appUrl),
     title: {
-      default: `Free roofing quotes in ${brand.launchRegion} | ${brand.name}`,
+      default: `Free electrician quotes in ${brand.launchRegion} | ${brand.name}`,
       template: `%s | ${brand.name}`,
     },
-    description: `Tell us about your roofing job and we'll pass your enquiry to a local roofing business covering ${brand.launchRegion}. Free, with no obligation.`,
+    description: `Tell us about your electrical job and we'll pass your enquiry to a local electrical business covering ${brand.launchRegion}. Free, with no obligation.`,
     applicationName: brand.name,
     alternates: { canonical: "/" },
     openGraph: {
       type: "website",
       siteName: brand.name,
-      title: `Free roofing quotes in ${brand.launchRegion}`,
-      description: "Tell us about your roofing job in about a minute. Free, with no obligation.",
+      title: `Free electrician quotes in ${brand.launchRegion}`,
+      description: "Tell us about your electrical job in about a minute. Free, with no obligation.",
       locale: "en_GB",
     },
   };

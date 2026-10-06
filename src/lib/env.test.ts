@@ -11,26 +11,26 @@ const devBase = {
 
 const productionBase = {
   APP_ENV: "production",
-  APP_URL: "https://www.example-roofing.co.uk/",
+  APP_URL: "https://www.example-electrical.co.uk/",
   DATABASE_URL: "postgres://user:s3cretpassword@db.internal:5432/leadgen",
   TURNSTILE_SITE_KEY: "0x4AAAAAAAsitekeyvalue1234",
   TURNSTILE_SECRET_KEY: SECRET_TURNSTILE,
-  BRAND_NAME: "Kent Roof Match",
-  BRAND_LEGAL_NAME: "Kent Roof Match Ltd",
+  BRAND_NAME: "Kent Spark Match",
+  BRAND_LEGAL_NAME: "Kent Spark Match Ltd",
   BRAND_COMPANY_NUMBER: "12345678",
   BRAND_REGISTERED_ADDRESS: "12 High Street, Orpington, Kent, BR6 0AB",
   BRAND_ICO_REGISTRATION: "ZB123456",
-  BRAND_PRIVACY_EMAIL: "privacy@kentroofmatch.co.uk",
+  BRAND_PRIVACY_EMAIL: "privacy@kentsparkmatch.co.uk",
   LEGAL_TEXT_REVIEWED: "true",
-  CF_ACCESS_TEAM_DOMAIN: "kentroofmatch.cloudflareaccess.com",
+  CF_ACCESS_TEAM_DOMAIN: "kentsparkmatch.cloudflareaccess.com",
   CF_ACCESS_AUD: "a".repeat(64),
-  ADMIN_ALLOWED_EMAILS: "Owner@KentRoofMatch.co.uk, ops@kentroofmatch.co.uk",
-  ADMIN_OWNER_EMAILS: "Owner@KentRoofMatch.co.uk",
+  ADMIN_ALLOWED_EMAILS: "Owner@KentSparkMatch.co.uk, ops@kentsparkmatch.co.uk",
+  ADMIN_OWNER_EMAILS: "Owner@KentSparkMatch.co.uk",
   PRIVACY_HASH_KEY: "k".repeat(40),
   SENTRY_DSN: "https://publickey@o0.ingest.sentry.io/1",
   EMAIL_PROVIDER: "resend",
   RESEND_API_KEY: "re_live_key_value_123",
-  EMAIL_FROM: "Kent Roof Match <hello@kentroofmatch.co.uk>",
+  EMAIL_FROM: "Kent Spark Match <hello@kentsparkmatch.co.uk>",
 };
 
 function problemsOf(source: Record<string, string>): string {
@@ -104,11 +104,11 @@ describe("parseServerEnv deployment guards", () => {
   it("accepts a fully configured production environment", () => {
     const env = parseServerEnv(productionBase);
     expect(env.APP_ENV).toBe("production");
-    expect(env.APP_URL).toBe("https://www.example-roofing.co.uk");
+    expect(env.APP_URL).toBe("https://www.example-electrical.co.uk");
   });
 
   it("refuses placeholder legal/brand details in production", () => {
-    const message = problemsOf({ ...productionBase, BRAND_LEGAL_NAME: "RoofQuote Local Ltd (placeholder)" });
+    const message = problemsOf({ ...productionBase, BRAND_LEGAL_NAME: "SparkQuote Local Ltd (placeholder)" });
     expect(message).toContain("BRAND_LEGAL_NAME");
     expect(message).toContain("placeholder");
 
@@ -145,7 +145,7 @@ describe("parseServerEnv deployment guards", () => {
   });
 
   it("requires https in production and staging", () => {
-    expect(problemsOf({ ...productionBase, APP_URL: "http://www.example-roofing.co.uk" })).toContain("https");
+    expect(problemsOf({ ...productionBase, APP_URL: "http://www.example-electrical.co.uk" })).toContain("https");
     expect(problemsOf({ ...productionBase, APP_ENV: "staging", APP_URL: "http://staging.example.co.uk" })).toContain("https");
   });
 
@@ -153,7 +153,7 @@ describe("parseServerEnv deployment guards", () => {
     const staging = {
       ...productionBase,
       APP_ENV: "staging",
-      BRAND_LEGAL_NAME: "RoofQuote Local Ltd (placeholder)",
+      BRAND_LEGAL_NAME: "SparkQuote Local Ltd (placeholder)",
     };
     expect(parseServerEnv(staging).APP_ENV).toBe("staging");
   });
@@ -172,7 +172,7 @@ describe("parseServerEnv deployment guards", () => {
 describe("parseSiteEnv", () => {
   it("does not require database or secret settings (static pages build without them)", () => {
     const env = parseSiteEnv({ TURNSTILE_SITE_KEY: "1x00000000000000000000AA" });
-    expect(env.BRAND_NAME).toBe("RoofQuote Local");
+    expect(env.BRAND_NAME).toBe("SparkQuote Local");
   });
 });
 
@@ -200,8 +200,8 @@ describe("admin access control settings (web)", () => {
 
   it("accepts a complete production configuration and normalises the allowlist", () => {
     const env = parseServerEnv(accessProduction);
-    expect(env.ADMIN_ALLOWED_EMAILS).toEqual(["owner@kentroofmatch.co.uk", "ops@kentroofmatch.co.uk"]);
-    expect(env.CF_ACCESS_TEAM_DOMAIN).toBe("kentroofmatch.cloudflareaccess.com");
+    expect(env.ADMIN_ALLOWED_EMAILS).toEqual(["owner@kentsparkmatch.co.uk", "ops@kentsparkmatch.co.uk"]);
+    expect(env.CF_ACCESS_TEAM_DOMAIN).toBe("kentsparkmatch.cloudflareaccess.com");
   });
 
   it("only accepts a cloudflareaccess.com team domain, so a typo cannot redirect where signing keys come from", () => {
@@ -219,7 +219,7 @@ describe("admin access control settings (web)", () => {
   });
 
   it("requires an owner and a long privacy hash key when deployed, and normalises the owner list", () => {
-    expect(parseServerEnv(accessProduction).ADMIN_OWNER_EMAILS).toEqual(["owner@kentroofmatch.co.uk"]);
+    expect(parseServerEnv(accessProduction).ADMIN_OWNER_EMAILS).toEqual(["owner@kentsparkmatch.co.uk"]);
     expect(problemsOf({ ...accessProduction, PRIVACY_HASH_KEY: "too-short" })).toContain("PRIVACY_HASH_KEY");
     expect(parseServerEnv({ ...devBase }).PRIVACY_HASH_KEY).toBeUndefined(); // development falls back to a dev-only key in code
     expect(problemsOf({ ...accessProduction, PRIVACY_HASH_KEY: "k".repeat(40) + "SECRETSUFFIX" , ADMIN_OWNER_EMAILS: "not-an-email" })).not.toContain("SECRETSUFFIX");
@@ -249,13 +249,13 @@ describe("admin access control settings (web)", () => {
 const workerDev = { DATABASE_URL: devBase.DATABASE_URL };
 const workerProduction = {
   APP_ENV: "production",
-  APP_URL: "https://www.kentroofmatch.co.uk",
-  ADMIN_BASE_URL: "https://admin.kentroofmatch.co.uk/",
+  APP_URL: "https://www.kentsparkmatch.co.uk",
+  ADMIN_BASE_URL: "https://admin.kentsparkmatch.co.uk/",
   DATABASE_URL: devBase.DATABASE_URL,
   EMAIL_PROVIDER: "resend",
   RESEND_API_KEY: "re_live_abcdefghijkl",
-  EMAIL_FROM: "Kent Roof Match <alerts@mail.kentroofmatch.co.uk>",
-  OPERATOR_ALERT_EMAILS: "Owner@KentRoofMatch.co.uk",
+  EMAIL_FROM: "Kent Spark Match <alerts@mail.kentsparkmatch.co.uk>",
+  OPERATOR_ALERT_EMAILS: "Owner@KentSparkMatch.co.uk",
   SENTRY_DSN: "https://publickey@o0.ingest.sentry.io/1",
   PRIVACY_HASH_KEY: "test-privacy-hash-key-0123456789abcdef-not-secret",
 };
@@ -297,8 +297,8 @@ describe("parseWorkerEnv", () => {
 
   it("accepts a complete production configuration and normalises recipients and the admin URL", () => {
     const env = parseWorkerEnv(workerProduction);
-    expect(env.OPERATOR_ALERT_EMAILS).toEqual(["owner@kentroofmatch.co.uk"]);
-    expect(env.ADMIN_BASE_URL).toBe("https://admin.kentroofmatch.co.uk");
+    expect(env.OPERATOR_ALERT_EMAILS).toEqual(["owner@kentsparkmatch.co.uk"]);
+    expect(env.ADMIN_BASE_URL).toBe("https://admin.kentsparkmatch.co.uk");
   });
 
   it("will not start in production or staging with the console provider, no recipients, or a test override", () => {
@@ -324,8 +324,8 @@ describe("parseWorkerEnv", () => {
   });
 
   it("requires an https link target for alert emails when deployed, falling back to APP_URL", () => {
-    expect(workerProblems({ ...workerProduction, ADMIN_BASE_URL: "http://admin.kentroofmatch.co.uk" })).toContain("ADMIN_BASE_URL");
-    const noAdminBase: Record<string, string> = { ...workerProduction, APP_URL: "https://www.kentroofmatch.co.uk" };
+    expect(workerProblems({ ...workerProduction, ADMIN_BASE_URL: "http://admin.kentsparkmatch.co.uk" })).toContain("ADMIN_BASE_URL");
+    const noAdminBase: Record<string, string> = { ...workerProduction, APP_URL: "https://www.kentsparkmatch.co.uk" };
     delete noAdminBase.ADMIN_BASE_URL;
     expect(parseWorkerEnv(noAdminBase).APP_ENV).toBe("production");
   });

@@ -1,10 +1,10 @@
 // Capacity of OUR code path: the real request handler + a real PostgreSQL, with the Turnstile call stubbed so
 // Cloudflare is not part of the measurement.
 //
-//   LOAD_DATABASE_URL=postgres://postgres@127.0.0.1:54329/leadgen_load npx tsx tests/load/ingest-inprocess.mts
+//   LOAD_DATABASE_URL=postgres://postgres@127.0.0.1:54349/electrical_load npx tsx tests/load/ingest-inprocess.mts
 //
 // !! Writes thousands of leads. The database name MUST contain "load" (create it from a migrated + seeded
-// template: CREATE DATABASE leadgen_load TEMPLATE leadgen_dev) - the script refuses anything else.
+// template: CREATE DATABASE electrical_load TEMPLATE electrical_dev) - the script refuses anything else.
 import pino from "pino";
 import { createDb } from "../../src/lib/db/client";
 import { SlidingWindowRateLimiter } from "../../src/lib/rate-limit";
@@ -24,12 +24,12 @@ const logger = pino({ level: "silent" });
 const deps = {
   leadService: createLeadService({
     db, postcodes: createPostcodeService(db), reference: createReferenceDataProvider(db),
-    challenge: { verify: async () => ({ status: "passed" as const }) }, logger, verticalSlug: "roofing",
+    challenge: { verify: async () => ({ status: "passed" as const }) }, logger, verticalSlug: "electrical",
   }),
   logger, ipConfig: { mode: "none" as const, trustedHops: 1 }, allowedOrigins: ["http://localhost:3000"],
   rateLimiter: new SlidingWindowRateLimiter({ limit: 1_000_000, windowMs: 60_000 }),
 };
-const services: Array<[string, string]> = [["roof_repair", "leak"], ["new_roof", "full_replacement"], ["flat_roof", "replace"], ["chimney", "leadwork"], ["guttering_fascias", "replace"], ["roof_inspection", "condition_survey"]];
+const services: Array<[string, string]> = [["fault_repair", "no_power"], ["rewire", "full_rewire"], ["ev_charger", "home_charger"], ["consumer_unit", "upgrade_consumer_unit"], ["lighting_sockets", "extra_sockets"], ["eicr", "periodic_check"]];
 const postcodes = ["BR6 0AA", "BR1 1AA", "TN13 1AA", "DA1 1AA", "BR5 1AA", "DA11 0AA"];
 const base = Date.now() % 100_000_000;
 

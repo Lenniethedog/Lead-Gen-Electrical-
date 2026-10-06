@@ -3,10 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 loadEnvConfig(process.cwd());
 
-const PORT = Number(process.env.E2E_PORT ?? 3100);
+const PORT = Number(process.env.E2E_PORT ?? 3310);
 const BASE_URL = `http://localhost:${PORT}`;
 // A stand-in for Cloudflare Access's signing keys, so the admin tests exercise the real token verification.
-const JWKS_PORT = Number(process.env.E2E_JWKS_PORT ?? 3199);
+const JWKS_PORT = Number(process.env.E2E_JWKS_PORT ?? 3399);
 // Locally we drive the Chrome that is already installed; in CI run `npx playwright install chromium`.
 const channel = process.env.CI ? undefined : "chrome";
 

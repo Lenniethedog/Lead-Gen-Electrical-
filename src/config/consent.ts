@@ -37,7 +37,7 @@ export interface ConsentDefinition {
 }
 
 /**
- * Variant A (what ships): the consumer's details are shared with ONE local roofing business.
+ * Variant A (what ships): the consumer's details are shared with ONE local electrical business.
  * Written so that the controller of the onward contact is clear, the recipient is described by
  * category and number, the channels are named, and the privacy notice is linked.
  */
@@ -46,9 +46,9 @@ export function buildShareWithOneBusinessConsent(brandName: string): ConsentDefi
     {
       kind: "text",
       text:
-        `I agree that ${brandName} may share the details I have entered with one local roofing ` +
+        `I agree that ${brandName} may share the details I have entered with one local electrical ` +
         `business that covers my area, so that they can contact me by phone, text message, ` +
-        `WhatsApp or email about my roofing enquiry. I have read the `,
+        `WhatsApp or email about my electrical enquiry. I have read the `,
     },
     { kind: "privacy_link", text: "Privacy Notice" },
     { kind: "text", text: "." },

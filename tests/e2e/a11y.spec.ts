@@ -16,7 +16,7 @@ test.describe("accessibility (WCAG 2.2 AA via axe)", () => {
 
   test("landing page shows where we cover on a real map, numbered, with the same information as text", async ({ page }) => {
     await page.goto("/");
-    const section = page.getByRole("region", { name: /Local roofers across/ });
+    const section = page.getByRole("region", { name: /Local electricians across/ });
     await expect(section.getByRole("region", { name: /Map of the areas we cover/ })).toBeVisible();
     await expect(section.getByRole("link", { name: /OpenStreetMap contributors/ })).toHaveAttribute("href", "https://www.openstreetmap.org/copyright");
     const list = section.getByRole("list", { name: "The areas on the map" });
@@ -38,7 +38,7 @@ test.describe("accessibility (WCAG 2.2 AA via axe)", () => {
     [2, "Tell us about the property", { propertyType: null, ownership: null }],
     [3, "Which best describes the work?", { scope: null }],
     [4, "When would you like the work done?", { urgency: null }],
-    [5, "How can the roofer contact you?", {}],
+    [5, "How can the electrician contact you?", {}],
   ];
 
   for (const [step, heading, values] of steps) {
@@ -59,7 +59,7 @@ test.describe("accessibility (WCAG 2.2 AA via axe)", () => {
   test("contact step with the optional notes field open", async ({ page }) => {
     await seedProgress(page, 5);
     await page.getByRole("button", { name: "Add more details (optional)" }).click();
-    await expect(page.getByLabel(/Anything else the roofer should know/)).toBeVisible();
+    await expect(page.getByLabel(/Anything else the electrician should know/)).toBeVisible();
     await fillContact(page, uniquePerson("A11y"));
     await expectNoViolations(page, "contact with notes");
   });

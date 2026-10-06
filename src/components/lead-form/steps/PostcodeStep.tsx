@@ -70,7 +70,7 @@ export function PostcodeStep({
       headingId="step-heading"
       headingRef={headingRef}
       title="Where is the work needed?"
-      intro="We only pass your details to roofers who cover this postcode."
+      intro="We only pass your details to electricians who cover this postcode."
       busy={checking}
       busyLabel="Checking…"
       onBack={onBack}

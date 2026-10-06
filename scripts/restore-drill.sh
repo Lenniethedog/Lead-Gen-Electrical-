@@ -5,7 +5,7 @@
 #   usage: scripts/restore-drill.sh <dump file | dump.age file | s3://bucket/prefix/leadgen-<stamp>.dump[.age]>
 #
 #   RESTORE_ADMIN_URL    postgres:// URL (no query string) of a server where a scratch database may be created and dropped,
-#                        ending in /postgres, e.g. postgres://postgres@127.0.0.1:54329/postgres. NEVER production.
+#                        ending in /postgres, e.g. postgres://postgres@127.0.0.1:54349/postgres. NEVER production.
 #   AGE_IDENTITY_FILE    private key file, required for .age dumps
 #   SOURCE_DATABASE_URL  optional: if set, row counts are compared with the live source (use right after a backup)
 #   R2_ENDPOINT_URL      for s3:// sources (aws CLI + credentials)

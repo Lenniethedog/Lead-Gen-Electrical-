@@ -13,7 +13,7 @@ import { NOTIFICATIONS_CHANNEL, createDeliveryService } from "@/modules/delivery
 import { ALERTS_CHANNEL, createAlertService } from "@/modules/alerts";
 import { ALERT_POLICY } from "@/config/lead-events";
 import { DEV_PRIVACY_HASH_KEY } from "@/config/privacy";
-import { ROOFING } from "@/config/verticals/roofing";
+import { ELECTRICAL } from "@/config/verticals/electrical";
 import { createPrivacyService } from "@/modules/privacy";
 import { createBillingService } from "@/modules/billing";
 import { cleanUpClientCredentials } from "@/modules/clientauth";
@@ -81,7 +81,7 @@ async function main() {
 
   // The router (stage 4). It only does anything while an owner has switched automatic routing on (a database setting, no deploy).
   const privacy = createPrivacyService({ db, logger, hashKey: env.PRIVACY_HASH_KEY ?? DEV_PRIVACY_HASH_KEY });
-  const routing = createRoutingService({ db, logger, verticalSlug: ROOFING.slug, isSuppressed: privacy.isSuppressed });
+  const routing = createRoutingService({ db, logger, verticalSlug: ELECTRICAL.slug, isSuppressed: privacy.isSuppressed });
 
   // Delivery to businesses (stage 5). Only businesses an operator has put on automatic delivery have anything to send.
   const delivery = createDeliveryService({

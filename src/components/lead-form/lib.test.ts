@@ -7,11 +7,11 @@ import { EMPTY_VALUES, type FormValues } from "./state";
 import { uuidv4 } from "./uuid";
 
 const payload: SubmitPayload = {
-  service: "roof_repair",
+  service: "fault_repair",
   postcode: "BR6 0AA",
   propertyType: "house",
   ownership: "owner",
-  scope: "leak",
+  scope: "no_power",
   urgency: "emergency",
   contact: { name: "Alex", phone: "07123 456789", email: "a@example.com", notes: "" },
   consent: { accepted: true, textVersion: "v1" },
@@ -137,11 +137,11 @@ describe("describeFailure", () => {
 describe("buildPayload", () => {
   const values: FormValues = {
     ...EMPTY_VALUES,
-    service: "roof_repair",
+    service: "fault_repair",
     postcode: " br6 0aa ",
     propertyType: "house",
     ownership: "owner",
-    scope: "leak",
+    scope: "no_power",
     urgency: "emergency",
     name: "Alex",
     phone: "07123 456789",
@@ -152,11 +152,11 @@ describe("buildPayload", () => {
 
   it("sends answers as typed (the server normalises) plus consent and telemetry", () => {
     expect(buildPayload(values, extras)).toEqual({
-      service: "roof_repair",
+      service: "fault_repair",
       postcode: " br6 0aa ",
       propertyType: "house",
       ownership: "owner",
-      scope: "leak",
+      scope: "no_power",
       urgency: "emergency",
       contact: { name: "Alex", phone: "07123 456789", email: "A@Example.com", notes: "hi" },
       consent: { accepted: true, textVersion: "v1" },
@@ -173,10 +173,10 @@ describe("buildPayload", () => {
 describe("captureAttribution", () => {
   it("reads campaign parameters and click ids from the URL, the path and the referrer host only", () => {
     const result = captureAttribution(
-      { search: "?utm_source=google&utm_medium=cpc&utm_campaign=21&gclid=abc&fbclid=&other=1", pathname: "/roofing" },
-      "https://www.google.com/search?q=roofer+near+me",
+      { search: "?utm_source=google&utm_medium=cpc&utm_campaign=21&gclid=abc&fbclid=&other=1", pathname: "/electrical" },
+      "https://www.google.com/search?q=electrician+near+me",
     );
-    expect(result).toEqual({ utmSource: "google", utmMedium: "cpc", utmCampaign: "21", gclid: "abc", landingPath: "/roofing", referrerHost: "www.google.com" });
+    expect(result).toEqual({ utmSource: "google", utmMedium: "cpc", utmCampaign: "21", gclid: "abc", landingPath: "/electrical", referrerHost: "www.google.com" });
   });
 
   it("tolerates no parameters and an unparseable referrer", () => {

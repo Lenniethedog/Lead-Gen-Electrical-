@@ -5,6 +5,7 @@ import { CoverageMap } from "@/components/landing/CoverageMap";
 import { Header } from "@/components/landing/Header";
 import { CheckIcon } from "@/components/landing/icons";
 import { LeadForm } from "@/components/lead-form/LeadForm";
+import { SafetyNote } from "@/components/lead-form/SafetyNote";
 import { getSiteEnv } from "@/lib/env";
 
 // Statically rendered and CDN-cacheable: the page reads only build-time configuration. Nothing here
@@ -18,17 +19,17 @@ export default function HomePage() {
       <Header brandName={brand.name} />
       <main id="main">
         <section id="top" aria-labelledby="hero-heading" className="relative isolate overflow-hidden bg-navy-900 text-white">
-          {/* Decoration only: a soft copper glow and a faint tile pattern. */}
+          {/* Decoration only: a soft teal glow and a faint circuit-trace pattern. */}
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
             <div className="absolute -right-32 -top-40 size-[34rem] rounded-full bg-brand-600/25 blur-3xl" />
             <div className="absolute -bottom-48 -left-24 size-[28rem] rounded-full bg-navy-600/40 blur-3xl" />
             <svg className="absolute inset-0 size-full text-white/[0.045]" width="100%" height="100%">
               <defs>
-                <pattern id="tiles" width="56" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M0 40 28 12 56 40M-28 20l28-28 28 28M28 20l28-28 28 28" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                <pattern id="traces" width="64" height="32" patternUnits="userSpaceOnUse">
+                  <path d="M0 16h20l6-9 8 18 6-9h24" fill="none" stroke="currentColor" strokeWidth="1.2" />
                 </pattern>
               </defs>
-              <rect width="100%" height="100%" fill="url(#tiles)" />
+              <rect width="100%" height="100%" fill="url(#traces)" />
             </svg>
           </div>
           {/*
@@ -42,11 +43,13 @@ export default function HomePage() {
                 Serving {brand.launchRegion}
               </p>
               <h1 id="hero-heading" className="mt-5 text-4xl font-semibold leading-[1.08] text-white sm:text-5xl lg:text-[3.5rem]">
-                Free roofing quotes from <span className="text-brand-300">local roofers</span>
+                Free electrician quotes from <span className="text-brand-300">local electricians</span>
               </h1>
               <p className="mt-4 max-w-xl text-lg text-navy-100">
-                Tell us about your roof in about a minute. We pass your enquiry to one local roofing business that covers your postcode.
+                Tell us about your electrical job in about a minute. We pass your enquiry to one local electrical business that covers your postcode.
               </p>
+              {/* Before the form on every screen: someone with sparks, a burning smell or a shock must ring the emergency line, not wait for a quote. */}
+              <SafetyNote compact className="mt-5 max-w-xl" />
             </div>
 
             <div
@@ -65,7 +68,7 @@ export default function HomePage() {
             <ul className="space-y-3 text-base font-medium text-white lg:col-start-1 lg:row-start-2 lg:self-start">
               {[
                 "Free to use, with no obligation",
-                "Your details go to one local roofing business, not a list of companies",
+                "Your details go to one local electrical business, not a list of companies",
                 "Takes about a minute",
               ].map((point) => (
                 <li key={point} className="flex gap-3">

@@ -1,9 +1,9 @@
 // How long from "lead stored" to "the provider accepted the alert email", measured on the REAL worker process
 // against a real PostgreSQL and a fake HTTP provider whose response latency you choose.
 //
-//   LOAD_DATABASE_URL=postgres://postgres@127.0.0.1:54329/leadgen_load PROVIDER_LATENCY_MS=250 npx tsx tests/load/alert-latency.mts
+//   LOAD_DATABASE_URL=postgres://postgres@127.0.0.1:54349/electrical_load PROVIDER_LATENCY_MS=250 npx tsx tests/load/alert-latency.mts
 //
-// !! Writes hundreds of leads. The database name MUST contain "load" (CREATE DATABASE leadgen_load TEMPLATE leadgen_dev):
+// !! Writes hundreds of leads. The database name MUST contain "load" (CREATE DATABASE electrical_load TEMPLATE electrical_dev):
 // the script refuses anything else.
 //
 // What it does NOT measure: the real provider's latency (set PROVIDER_LATENCY_MS to what you observe from it),

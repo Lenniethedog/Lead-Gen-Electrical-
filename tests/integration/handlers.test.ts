@@ -188,7 +188,7 @@ describe("POST /api/v1/postcodes/check", () => {
   const deps = () => ({
     postcodes: createPostcodeService(t.db),
     reference: createReferenceDataProvider(t.db, { ttlMs: 0 }),
-    verticalSlug: "roofing",
+    verticalSlug: "electrical",
     logger: silentLogger,
     ipConfig: { mode: "forwarded", trustedHops: 1 } as const,
     allowedOrigins: [ORIGIN],
@@ -246,7 +246,7 @@ describe("health and readiness", () => {
   });
 
   it("is ready when the database, postcode directory and consent archive are all in place", async () => {
-    const response = await handleReady({ db: t.db, consent: buildConsent("RoofQuote Local"), logger: silentLogger });
+    const response = await handleReady({ db: t.db, consent: buildConsent("SparkQuote Local"), logger: silentLogger });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ready", checks: { database: "ok", postcodes: "ok", consent: "ok" } });
   });
@@ -261,7 +261,7 @@ describe("health and readiness", () => {
     const empty = await createTestDatabase();
     try {
       await empty.admin.deleteFrom("postcodes").execute();
-      const response = await handleReady({ db: empty.db, consent: buildConsent("RoofQuote Local"), logger: silentLogger });
+      const response = await handleReady({ db: empty.db, consent: buildConsent("SparkQuote Local"), logger: silentLogger });
       expect(response.status).toBe(503);
       expect(((await response.json()) as { checks: Record<string, string> }).checks).toEqual({ database: "ok", postcodes: "fail", consent: "ok" });
     } finally {

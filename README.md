@@ -3,7 +3,7 @@
 Captures consumer enquiries for a local service niche, screens and stores them reliably, and (in later
 stages) routes each one to the right local business and delivers it within seconds.
 
-**Launch assumption (the brief had unfilled placeholders):** roofing contractors across South East London
+**Launch assumption (the brief had unfilled placeholders):** electricians and electrical contractors across South East London
 (Bromley, Bexley and the nearest SE postcodes), North Kent and Sevenoaks. The niche and footprint are configuration, not architecture; see
 [docs/00-assumptions-and-decisions.md](docs/00-assumptions-and-decisions.md).
 
@@ -18,7 +18,7 @@ stages) routes each one to the right local business and delivers it within secon
 | **5** | **Instant delivery**: tells a business about its lead the moment it is assigned, by email, text message and signed webhook, per business and off by default; retries, a bounded worker pool, a dead-letter queue ("Deliveries that need you"), Twilio delivery reports, and the lead is freed and re-routed if every way fails | **Built and tested locally** against stand-ins; **nothing has been sent through a real Twilio account, a real receiver or a real sending domain** |
 | 6–10 | Client dashboard and credits, payments, admin, fraud v2, analytics, scale | Designed, not built: [docs/07-roadmap.md](docs/07-roadmap.md) |
 
-Stage 2 is the point at which leads reach a human; stage 3 is the point at which you can record who received each one. Gate A (a small paid test with real roofers) is a business test that only you can run. **Do not spend on ads until [docs/runbook.md](docs/runbook.md)'s first-run verification has passed** against the real services
+Stage 2 is the point at which leads reach a human; stage 3 is the point at which you can record who received each one. Gate A (a small paid test with real electrical businesses) is a business test that only you can run. **Do not spend on ads until [docs/runbook.md](docs/runbook.md)'s first-run verification has passed** against the real services
 (email delivery, the Access-protected inbox, the uptime monitors, a restore drill).
 
 ## Quick start
@@ -30,19 +30,19 @@ npm install
 cp .env.example .env.local          # development defaults work as-is
 
 # A database: either of these.
-docker compose up -d db             # port 54329
+docker compose up -d db             # port 54349
 npm run db:local                    # no Docker: isolated cluster in .local/ using Homebrew/apt Postgres
 
-npm run db:setup                    # migrations + reference data (roofing, services, footprint, consent wording)
+npm run db:setup                    # migrations + reference data (electrical, services, footprint, consent wording)
 npm run db:seed -- --dev-postcodes  # SYNTHETIC postcodes so the form works before the real import (dev only)
 
-npm run dev                         # http://localhost:3000
+npm run dev                         # http://localhost:3300
 npm run worker                      # second terminal: sends operator alerts (printed to the terminal in development)
 ```
 
-Open `http://localhost:3000/admin` for the operator inbox: in development it admits the operator named by `ADMIN_DEV_EMAIL` (no Cloudflare Access needed; never in a production build).
+Open `http://localhost:3300/admin` for the operator inbox: in development it admits the operator named by `ADMIN_DEV_EMAIL` (no Cloudflare Access needed; never in a production build).
 
-Port 3000 busy? `npm run dev -- -p 3100` **and** set `APP_URL=http://localhost:3100` (the API only accepts
+Port 3300 busy? `npm run dev -- -p 3301` **and** set `APP_URL=http://localhost:3301` (the API only accepts
 browser requests from `APP_URL`/`ALLOWED_ORIGINS`).
 
 ### Real postcode data
@@ -68,7 +68,7 @@ ONSPD. Refresh quarterly. `/api/ready` reports not-ready until postcodes are loa
 | `npm run test:unit` / `test:integration` | One layer at a time |
 | `npm run test:e2e` | Playwright in real Chrome against a production build and the dev database |
 | `npm run db:migrate` / `db:seed` / `db:setup` | Roll-forward migrations, idempotent reference data |
-| `npm run db:demo` | Loads six fictional roofers, prices and fourteen enquiries in every state into an **empty local** database (refuses anything else); run after `db:setup` and `db:seed -- --dev-postcodes` |
+| `npm run db:demo` | Loads six fictional electrical businesses, prices and fourteen enquiries in every state into an **empty local** database (refuses anything else); run after `db:setup` and `db:seed -- --dev-postcodes` |
 | `npm run db:types` / `db:types:check` | Regenerate / verify the Kysely types from the live schema (CI checks drift) |
 | `npm run dev:pretty` | Dev server with readable JSON logs |
 | `npm run worker` / `worker:dev` | The worker process (alert emails, the router, delivery to businesses, the reconciler); `worker:dev` restarts on change with readable logs |
@@ -99,7 +99,7 @@ src/workers      the worker process (entrypoint, control loop, LISTEN connection
 src/integrations adapters behind interfaces (email: Resend and console; delivery: Twilio, signed webhooks)
 src/proxy.ts     first gate for /admin (Cloudflare Access token + allowlist)
 src/lib          foundations: env, db, http, logging, ip, rate limiting, ids, Access verification, error reporting
-src/config       decisions as code: brand, vertical (roofing), consent wording, fraud weights, retention
+src/config       decisions as code: brand, vertical (electrical), consent wording, fraud weights, retention
 db/migrations    SQL, roll-forward only        db/seeds   idempotent reference data
 scripts          migrate, seed, types, ONSPD import, local Postgres
 docs             architecture, data model, roadmap, security: start at docs/README.md

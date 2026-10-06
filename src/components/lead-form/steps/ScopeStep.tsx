@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { TileGroup } from "@/components/ui/TileGroup";
-import { isValidScope, SERVICES } from "@/config/verticals/roofing";
+import { isValidScope, SERVICES } from "@/config/verticals/electrical";
 import { StepShell } from "../StepShell";
 import type { StepProps } from "./types";
 

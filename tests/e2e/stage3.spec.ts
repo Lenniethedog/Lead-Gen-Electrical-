@@ -12,7 +12,7 @@ import { SERVICE, uniquePerson, withDb } from "./helpers";
 test.describe("clients and coverage", () => {
   test("creating a client, the activation guard, coverage rules and the tester", async ({ page }) => {
     await signInAs(page);
-    const name = `E2E Roofing ${unique()}`;
+    const name = `E2E Electrical ${unique()}`;
 
     await page.goto("/admin/clients/new");
     // The form keeps what was typed and names what is wrong.
@@ -23,7 +23,7 @@ test.describe("clients and coverage", () => {
     await expect(page.getByLabel("Business name")).toHaveValue(name);
     await expect(page.getByText("Enter a valid email address")).toBeVisible();
 
-    await page.getByLabel("Their email").fill(`${unique()}@roofer.example`);
+    await page.getByLabel("Their email").fill(`${unique()}@electrician.example`);
     await page.getByRole("button", { name: "Create client" }).click();
     await expect(page.getByRole("status").first()).toContainText("Client created");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
@@ -55,11 +55,11 @@ test.describe("clients and coverage", () => {
     await expect(page.getByRole("status").first()).toContainText("Status changed");
 
     // The tester agrees, and says why not for a postcode they don't cover.
-    await page.goto("/admin/coverage?postcode=BR6+0AA&service=roof_repair&sale=exclusive");
+    await page.goto("/admin/coverage?postcode=BR6+0AA&service=fault_repair&sale=exclusive");
     const row = page.getByRole("row").filter({ hasText: name });
     await expect(row).toContainText("Eligible");
     await expect(row).toContainText("Postcode district BR6");
-    await page.goto("/admin/coverage?postcode=TN13+1AA&service=roof_repair&sale=exclusive");
+    await page.goto("/admin/coverage?postcode=TN13+1AA&service=fault_repair&sale=exclusive");
     const away = page.getByRole("row").filter({ hasText: name });
     await expect(away).toContainText("Not eligible");
     await expect(away).toContainText("No coverage rule includes this postcode");
@@ -69,14 +69,14 @@ test.describe("clients and coverage", () => {
 
   test("a client's page, the clients list and the tester are accessible", async ({ page }) => {
     await signInAs(page);
-    const name = await createActiveClient(page, `E2E A11y Roofing ${unique()}`);
+    const name = await createActiveClient(page, `E2E A11y Electrical ${unique()}`);
     await expectNoViolations(page, "client detail");
     await page.goto("/admin/clients");
     await expect(page.getByRole("link", { name })).toBeVisible();
     await expectNoViolations(page, "clients list");
     await page.goto("/admin/clients/new");
     await expectNoViolations(page, "new client");
-    await page.goto("/admin/coverage?postcode=BR6+0AA&service=roof_repair&sale=exclusive");
+    await page.goto("/admin/coverage?postcode=BR6+0AA&service=fault_repair&sale=exclusive");
     await expectNoViolations(page, "coverage tester with results");
   });
 
@@ -92,12 +92,12 @@ test.describe("pricing", () => {
   test("setting a price replaces the old one, keeps the history, and rejects nonsense", async ({ page }) => {
     await signInAs(page);
     await page.goto("/admin/pricing");
-    await page.getByLabel("Service", { exact: true }).selectOption("flat_roof");
+    await page.getByLabel("Service", { exact: true }).selectOption("ev_charger");
     await page.getByLabel("Price per lead (£)").fill("lots");
     await page.getByRole("button", { name: "Save price" }).click();
     await expect(problem(page)).toContainText("Enter a price in pounds");
 
-    await page.getByLabel("Service", { exact: true }).selectOption("flat_roof");
+    await page.getByLabel("Service", { exact: true }).selectOption("ev_charger");
     // A price no earlier run used, so the history assertion below cannot pass on a previous run's leftovers.
     // Taken from the clock (to the millisecond, £100.00 to £499.99, never the £49 used next) rather than a small random range, which the
     // shared dev database eventually repeats.
@@ -106,13 +106,13 @@ test.describe("pricing", () => {
     await page.getByLabel("Price per lead (£)").fill(firstPrice.toFixed(2));
     await page.getByRole("button", { name: "Save price" }).click();
     await expect(page.getByRole("status")).toContainText("Price saved");
-    await expect(page.getByRole("row").filter({ hasText: "Flat roof" })).toContainText(firstText);
+    await expect(page.getByRole("row").filter({ hasText: "EV charger" })).toContainText(firstText);
 
-    await page.getByLabel("Service", { exact: true }).selectOption("flat_roof");
+    await page.getByLabel("Service", { exact: true }).selectOption("ev_charger");
     await page.getByLabel("Price per lead (£)").fill("49");
     await page.getByRole("button", { name: "Save price" }).click();
-    await expect(page.getByRole("row").filter({ hasText: "Flat roof" })).toContainText("£49.00");
-    await expect(page.getByRole("row").filter({ hasText: "Flat roof" })).not.toContainText(firstText);
+    await expect(page.getByRole("row").filter({ hasText: "EV charger" })).toContainText("£49.00");
+    await expect(page.getByRole("row").filter({ hasText: "EV charger" })).not.toContainText(firstText);
     await expect(page.getByRole("heading", { name: "Price history" })).toBeVisible();
     await expect(page.getByText(`${firstText} ·`)).toBeVisible();
     await expectNoViolations(page, "pricing");
@@ -123,10 +123,10 @@ test.describe("handing a lead to a business", () => {
   test("assign, send, take back, assign again and move it, with the message and the history", async ({ page, request, baseURL }) => {
     await signInAs(page);
     // A general price so the assign form does not ask for one.
-    // A price for exactly what the test lead is (roof repair, urgent): the most specific rule wins, so this holds even when the database
+    // A price for exactly what the test lead is (electrical fault repair, urgent): the most specific rule wins, so this holds even when the database
     // already has a cheaper or dearer general rule (the demo data has an urgent rule of its own).
     await page.goto("/admin/pricing");
-    await page.getByLabel("Service", { exact: true }).selectOption("roof_repair");
+    await page.getByLabel("Service", { exact: true }).selectOption("fault_repair");
     await page.getByLabel("Urgency").selectOption("emergency");
     await page.getByLabel("Price per lead (£)").fill("35");
     await page.getByRole("button", { name: "Save price" }).click();

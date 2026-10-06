@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { SERVICE_SLUGS, SERVICES } from "@/config/verticals/roofing";
+import { ELECTRICAL_EMERGENCY } from "@/config/safety";
+import { SERVICE_SLUGS, SERVICES } from "@/config/verticals/electrical";
 import type { Brand } from "@/config/brand";
 import { Eyebrow } from "./Eyebrow";
 import { CheckIcon, ServiceIcon } from "./icons";
@@ -13,8 +14,8 @@ import { CheckIcon, ServiceIcon } from "./icons";
 
 export function HowItWorks() {
   const steps = [
-    { title: "Tell us about the job", body: "Answer a few quick questions about your roof. It takes about a minute." },
-    { title: "We find a local roofer", body: "We pass your enquiry to one roofing business that covers your postcode." },
+    { title: "Tell us about the job", body: "Answer a few quick questions about the work. It takes about a minute." },
+    { title: "We find a local electrician", body: "We pass your enquiry to one electrical business that covers your postcode." },
     { title: "They get in touch", body: "They contact you to discuss the work and give you a quote. There's no obligation." },
   ];
   return (
@@ -49,7 +50,7 @@ export function ServicesList() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Eyebrow>What we can help with</Eyebrow>
         <h2 id="services-heading" className="mt-2 max-w-2xl text-3xl font-semibold text-ink sm:text-4xl">
-          Roofing work we can help you find a roofer for
+          Electrical work we can help you find an electrician for
         </h2>
         <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICE_SLUGS.filter((slug) => slug !== "other").map((slug) => (
@@ -74,24 +75,52 @@ export function ServicesList() {
 }
 
 export function Faq({ brand }: { brand: Brand }) {
+  const { phone, powerCut } = ELECTRICAL_EMERGENCY;
   const items: Array<{ question: string; answer: React.ReactNode }> = [
     {
-      question: "Is it really free?",
-      answer: `Yes. Using ${brand.name} costs you nothing. Roofing businesses pay us for introductions to people who are looking for roofing work in their area.`,
+      question: "What if there are sparks, a burning smell or someone has had a shock?",
+      answer: (
+        <>
+          {ELECTRICAL_EMERGENCY.body} The number is{" "}
+          <a href={`tel:${phone.tel}`} className="font-semibold text-brand-800 underline">
+            {phone.display}
+          </a>
+          . For a power cut or a fallen cable, call{" "}
+          <a href={`tel:${powerCut.tel}`} className="font-semibold text-brand-800 underline">
+            {powerCut.display}
+          </a>{" "}
+          (free, 24 hours a day).
+        </>
+      ),
     },
     {
-      question: "Are you a roofing company?",
-      answer: `No. ${brand.legalName} is an introduction service. We don't carry out roofing work ourselves. Any quote, contract or work is agreed directly between you and the roofing business.`,
+      question: "Is it really free?",
+      answer: `Yes. Using ${brand.name} costs you nothing. Electrical businesses pay us for introductions to people who are looking for electrical work in their area.`,
+    },
+    {
+      question: "Are you an electrical company?",
+      answer: `No. ${brand.legalName} is an introduction service. We don't carry out electrical work ourselves. Any quote, contract or work is agreed directly between you and the electrical business.`,
     },
     {
       question: "Who will contact me, and how?",
       answer:
-        "One local roofing business that covers your postcode. They may contact you by phone, text message, WhatsApp or email about your enquiry, exactly as you agree on the form.",
+        "One local electrical business that covers your postcode. They may contact you by phone, text message, WhatsApp or email about your enquiry, exactly as you agree on the form.",
     },
     {
       question: "What does a quote cost?",
       answer:
-        "Prices depend on the job, so there's no price on this page. The roofing business will discuss your job and give you a quote. You're under no obligation to accept it.",
+        "Prices depend on the job, so there's no price on this page. The electrical business will discuss your job and give you a quote. You're under no obligation to accept it.",
+    },
+    {
+      // Advice only. We do not check registrations yet, so the site never claims the businesses are registered (docs/00 E4).
+      question: "How do I check an electrician is qualified?",
+      answer:
+        "In England, work such as a new circuit or replacing a consumer unit has to be done by an electrician registered with a government-approved competent person scheme, or be notified to your council's building control before it starts. Ask to see their registration and check it on the scheme's own register before work begins, and ask for the electrical certificate when the job is finished. We don't check registrations ourselves, so we never claim that a business is registered.",
+    },
+    {
+      question: "What is an EICR, and do I need one?",
+      answer:
+        "An Electrical Installation Condition Report (EICR) is an inspection of the fixed wiring in a property and a report on its condition. Landlords of privately rented homes in England must have one carried out at least every 5 years and give a copy to their tenants. Many buyers and mortgage lenders also ask for one.",
     },
     {
       question: "Which areas do you cover?",
@@ -101,7 +130,7 @@ export function Faq({ brand }: { brand: Brand }) {
       question: "What happens to my details?",
       answer: (
         <>
-          We use them to find you a roofing business and pass your enquiry on, and we share them only as you agree on the form. You
+          We use them to find you an electrical business and pass your enquiry on, and we share them only as you agree on the form. You
           can withdraw your consent or ask us to delete your details at any time. See our{" "}
           <Link href="/privacy" className="font-semibold text-brand-800 underline">
             Privacy Notice
@@ -155,7 +184,7 @@ export function Footer({ brand }: { brand: Brand }) {
         </p>
         <p className="mt-1">ICO registration number: {brand.icoRegistration}.</p>
         <p className="mt-1">
-          {brand.name} is an introduction service. We are not a roofing company and do not carry out roofing work.
+          {brand.name} is an introduction service. We are not an electrical company and do not carry out electrical work.
         </p>
         <nav aria-label="Legal" className="mt-5 flex gap-6">
           <Link href="/privacy" className="font-semibold text-white underline underline-offset-4 hover:text-brand-300">

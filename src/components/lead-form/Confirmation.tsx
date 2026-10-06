@@ -30,7 +30,7 @@ export function Confirmation({ reference, brandName, privacyEmail, onStartAnothe
         Thanks, your enquiry has been sent
       </h2>
       <p className="mt-2 text-base text-ink">
-        {brandName} is passing your details to a local roofing business that covers your area. They will contact you
+        {brandName} is passing your details to a local electrical business that covers your area. They will contact you
         directly to talk about the work and give you a quote.
       </p>
       <p className="mt-4 rounded-lg bg-stone-100 px-4 py-3 text-base">

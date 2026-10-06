@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TileGroup, type TileOption } from "@/components/ui/TileGroup";
 import { URGENCIES, URGENCY_VALUES, type Urgency } from "@/config/lead-options";
+import { SafetyNote } from "../SafetyNote";
 import { StepShell } from "../StepShell";
 import type { StepProps } from "./types";
 
@@ -27,6 +28,7 @@ export function UrgencyStep({ values, fieldErrors, headingRef, onPatch, onChoose
         onContinue();
       }}
     >
+      <SafetyNote className="mb-4" />
       <TileGroup
         name="urgency"
         labelledBy="step-heading"

@@ -5,7 +5,7 @@ import { LegalPage } from "@/components/landing/LegalPage";
 
 export const metadata: Metadata = {
   title: "Privacy Notice",
-  description: "How we collect, use and share your personal information when you ask for roofing quotes.",
+  description: "How we collect, use and share your personal information when you ask for electrician quotes.",
 };
 
 export default function PrivacyPage() {
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Notice">
       <p>
-        This notice explains what personal information {brand.name} collects when you ask for roofing quotes, why we collect it,
+        This notice explains what personal information {brand.name} collects when you ask for electrician quotes, why we collect it,
         who we share it with and what your rights are.
       </p>
 
@@ -24,14 +24,14 @@ export default function PrivacyPage() {
         {brand.icoRegistration}. Contact us about privacy at <a href={`mailto:${brand.privacyEmail}`}>{brand.privacyEmail}</a>.
       </p>
       <p>
-        We are an introduction service: we are not a roofing company. We pass your enquiry to a roofing business, and that
+        We are an introduction service: we are not an electrical company. We pass your enquiry to an electrical business, and that
         business then decides how to use your details to contact you and give you a quote.
       </p>
 
       <h2>What we collect</h2>
       <ul>
         <li>
-          <strong>What you tell us:</strong> your postcode, the type of property, your connection to it, the roofing work you need,
+          <strong>What you tell us:</strong> your postcode, the type of property, your connection to it, the electrical work you need,
           when you want it done, your name, phone number, email address and anything you choose to add in the optional notes box.
         </li>
         <li>
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
       <h2>Why we use it, and our legal basis</h2>
       <ul>
         <li>
-          <strong>To find a roofing business for your enquiry, pass your details to it and let it contact you:</strong> your
+          <strong>To find an electrical business for your enquiry, pass your details to it and let it contact you:</strong> your
           consent, which you give by ticking the box on the form.
         </li>
         <li>
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
       <h2>Who we share your details with</h2>
       <ul>
         <li>
-          <strong>One local roofing business</strong> that covers your area. It receives the details you entered and uses them to
+          <strong>One local electrical business</strong> that covers your area. It receives the details you entered and uses them to
           contact you about your enquiry, by phone, text message, WhatsApp or email. Once it has your details it is responsible, as
           a separate controller, for how it uses them and must give you its own privacy information.
         </li>
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
       </ul>
       <p>
         You can <strong>withdraw your consent at any time</strong> by emailing{" "}
-        <a href={`mailto:${brand.privacyEmail}`}>{brand.privacyEmail}</a> with your enquiry reference. We will tell the roofing
+        <a href={`mailto:${brand.privacyEmail}`}>{brand.privacyEmail}</a> with your enquiry reference. We will tell the electrical
         business to stop contacting you and delete your details, although we cannot undo contact that has already happened.
         Withdrawing consent does not affect what we did before you withdrew it. We aim to respond within one month.
       </p>

@@ -1,6 +1,6 @@
 import { sql } from "kysely";
 import { buildConsent } from "@/config/consent";
-import { SERVICE_SLUGS, SERVICES, ROOFING } from "@/config/verticals/roofing";
+import { SERVICE_SLUGS, SERVICES, ELECTRICAL } from "@/config/verticals/electrical";
 import type { Database } from "@/lib/db/client";
 import type { LeadSourceKind } from "@/lib/db/schema";
 import { SOURCE_SLUGS, type SourceSlug } from "@/modules/attribution";
@@ -41,8 +41,8 @@ export async function seedReferenceData(
   return db.transaction().execute(async (trx) => {
     const vertical = await trx
       .insertInto("verticals")
-      .values({ slug: ROOFING.slug, name: ROOFING.name, duplicate_window_days: ROOFING.duplicateWindowDays })
-      .onConflict((conflict) => conflict.column("slug").doUpdateSet({ name: ROOFING.name }))
+      .values({ slug: ELECTRICAL.slug, name: ELECTRICAL.name, duplicate_window_days: ELECTRICAL.duplicateWindowDays })
+      .onConflict((conflict) => conflict.column("slug").doUpdateSet({ name: ELECTRICAL.name }))
       .returning("id")
       .executeTakeFirstOrThrow();
 
@@ -114,7 +114,7 @@ export async function seedReferenceData(
     }
 
     return {
-      vertical: ROOFING.slug,
+      vertical: ELECTRICAL.slug,
       serviceTypes: SERVICE_SLUGS.length,
       leadSources: SOURCE_SLUGS.length,
       serviceAreas: SERVICE_AREAS.length,

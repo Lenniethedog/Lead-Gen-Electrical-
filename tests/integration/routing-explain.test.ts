@@ -88,7 +88,7 @@ describe("the explanation agrees with the router", () => {
 describe("why the router would leave a lead alone", () => {
   it("says so, and still shows who would get it if it were routed", async () => {
     env = await buildRouting();
-    await env.s.activeClient(env.owner, { name: "Roofer" });
+    await env.s.activeClient(env.owner, { name: "Electrician" });
     const lead = await insertRawLead(env.t.admin);
 
     // Switched off.

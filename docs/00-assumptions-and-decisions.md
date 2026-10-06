@@ -1,5 +1,10 @@
 # Assumptions and decisions
 
+> **This is the electrical project.** It was forked from the roofing platform (UPSTREAM.md) and shares its architecture, so
+> decisions D1-D67 below were made for roofing and apply here unchanged unless an electrical decision (E1 onwards, at the end of
+> section 2) says otherwise. Electrical decisions use their own numbers so they never collide with roofing's (or the boiler
+> project's B-numbers) when a fix is ported across.
+
 ## 1. Assumptions made
 
 The brief's project parameters were template placeholders (`[e.g. ...]`). The brief says to assume sensibly and continue, so each
@@ -8,15 +13,15 @@ but **confirm or correct them before go-live**: they decide the legal text, the 
 
 | Parameter | Assumed | Cost of being wrong |
 | --- | --- | --- |
-| Niche | Roofing contractors (repairs, new roofs, flat roofs, chimneys, gutters/fascias, inspections) | Low. The vertical is one config file (`src/config/verticals/roofing.ts`), a seed and some landing copy. |
-| Region | Orpington, Bromley, Sevenoaks, North Kent (`db/seeds/service-areas.ts`: BR1-8, DA1-4, DA9-13, TN13-15) | Low. Footprint is data. **The district list is my guess**; match it to where paying roofers actually work. |
+| Niche | Electricians: fault finding and repair, consumer units (fuse boxes), rewires, electrical safety checks (EICR), EV charger installs, and lighting, sockets and new circuits (E2) | Low. The trade is one config file (`src/config/verticals/electrical.ts`), the seed and the copy in the pages. |
+| Region | Orpington, Bromley, Sevenoaks, North Kent (`db/seeds/service-areas.ts`: BR1-8, DA1-4, DA9-13, TN13-15) | Low. Footprint is data. **The district list is my guess**; match it to where paying electrical businesses actually work. |
 | Stack | Next.js + TypeScript + PostgreSQL + Tailwind; Node worker process; no Redis | See decision D1. |
 | Hosting | One container platform (Railway) behind Cloudflare | Moderate; the app is container-portable. See D2. |
 | Channels | Email + SMS + webhook first, WhatsApp second | See D12. |
 | Volume | 100 to 1,000 leads/month at launch, 10,000+ later | Capacity is not the constraint (section 5 of 06-operations). |
 | Sale model | Exclusive: one business per lead | Shared leads are designed in (DB constraints exist) but not built. |
 | Consumers | UK only; consent captured per lead | n/a |
-| Brand | Working title "RoofQuote Local", all legal details placeholders | Production refuses to start until real details are set. |
+| Brand | Working title "SparkQuote Local", all legal details placeholders | Production refuses to start until real details are set. |
 
 ## 2. Decisions that differ from the brief
 
@@ -59,7 +64,7 @@ Form and ingestion are one stage (a form that stores nothing cannot be tested or
 stage 1 (paid traffic attracts bots from the first click). A minimal operator inbox comes before routing, so the first leads can be
 sold by hand. Clients come before routing (routing needs them). Billing waits for a paying client.
 
-**D7. Exclusive first.** Roofers resent shared leads (price race, low close rates), and exclusivity is the simplest model to make
+**D7. Exclusive first.** Tradespeople resent shared leads (price race, low close rates), and exclusivity is the simplest model to make
 correct. The database already supports shared leads with a hard cap; enable them deliberately later.
 
 **D8. Personal data is isolated.** Everything personal about a consumer lives in `lead_contacts` (plus the IP and user agent held as
@@ -138,7 +143,7 @@ Two surviving mutants in the mutation checks are this redundancy showing up, not
 
 ### Stage 4 decisions
 
-**Gate B was not passed before this was built.** The roadmap puts a paying roofer between stage 3 and stage 4 so the rules reflect real work. You asked for stage 4, so it exists, but it is built to be **switched off and cheap to be wrong about**: routing is off until an owner turns it on (D26), every rule is editable data (D29), and every decision can be explained and replayed. Treat the defaults (priority, fair share, daily and monthly caps, working hours) as a first guess to correct with what the first real roofers tell you.
+**Gate B was not passed before this was built.** The roadmap puts a paying electrical business between stage 3 and stage 4 so the rules reflect real work. You asked for stage 4, so it exists, but it is built to be **switched off and cheap to be wrong about**: routing is off until an owner turns it on (D26), every rule is editable data (D29), and every decision can be explained and replayed. Treat the defaults (priority, fair share, daily and monthly caps, working hours) as a first guess to correct with what the first real electrical businesses tell you.
 
 **D26. Automatic routing is OFF by default, and only ever routes leads that arrive while it is ON.** `routing_settings.enabled` is an owner-only switch (audited, no deploy). Turning it on records `enabled_at`; leads created before that moment, leads older than `max_lead_age_hours` (24 by default), test leads, leads a person marked handled, and leads a person took back for a reason that needs a person are never taken. A backlog must never be sent to a business by surprise the moment someone flips a switch. *Revisit if* operators want the router to sweep a backlog on request (a one-off "route these" action, with a preview).
 
@@ -154,7 +159,7 @@ Two surviving mutants in the mutation checks are this redundancy showing up, not
 
 **D32. What a take-back means for routing.** Taking a lead back because the business declined, did not answer, is the wrong area, or cannot take it **re-routes it automatically to a different business**. Taking it back for a quality concern, because the consumer asked, or for "another reason" **stops automatic routing for that lead** (an event, `lead.routing_stopped`): a person decides. Moving it to a named business ("Move it to another business") is atomic and never goes through the router.
 
-**D33. Fair share counts leads a business holds, in its own time zone.** Daily and monthly caps and the fair-share window count assignments that are still active (reserved, notified, accepted, disputed): a lead taken back or refunded frees the room, and the day and month are the business's own (`clients.timezone`, Europe/London by default and not yet editable in the UI), so a Sydney roofer's "today" is Sydney's. Working hours are the same: a window in local time, one or more per day, with a stop-offering grace before closing, and a business with no hours at all is available at any time. Urgent leads do not override hours (a decision to revisit with a real roofer).
+**D33. Fair share counts leads a business holds, in its own time zone.** Daily and monthly caps and the fair-share window count assignments that are still active (reserved, notified, accepted, disputed): a lead taken back or refunded frees the room, and the day and month are the business's own (`clients.timezone`, Europe/London by default and not yet editable in the UI), so a Sydney business's "today" is Sydney's. Working hours are the same: a window in local time, one or more per day, with a stop-offering grace before closing, and a business with no hours at all is available at any time. Urgent leads do not override hours (a decision to revisit with a real electrical business).
 
 **D34. A killed database connection no longer takes the process down.** Found by the crash test for this stage: `pg` emits `error` on a connection that is checked out of the pool and in use, and nothing was listening, so a failover or an administrator killing a connection mid-transaction would have crashed the worker or the web process (the in-flight query was already failing correctly). `createDb` now listens on every connection. This affects all stages.
 
@@ -180,7 +185,7 @@ Two surviving mutants in the mutation checks are this redundancy showing up, not
 
 **D43. Client login is a passwordless email link we own, not Better Auth.** The design named Better Auth. Against it: it brings its own tables and migrations (our rule is that every table is ours and every migration is reviewed), a large surface we cannot mutation-test, and we need only one flow. The flow is small and every rule in it has a test that fails when the rule is removed: an unguessable 256-bit token, only its SHA-256 stored, valid 15 minutes, single use decided by one `UPDATE ... WHERE consumed_at IS NULL AND expires_at > now() RETURNING` (two clicks cannot both win); the emailed link opens a page with a **button** that POSTs, because mail scanners follow every link with GET and would otherwise burn the token; the answer to "send me a link" is identical whether or not the address is known (no account enumeration) and is limited per address in the database (survives several web instances) and per IP in memory; a session is a second random token (hash stored) in an `HttpOnly`, `SameSite=Lax`, `Secure` (not on localhost) cookie, expiring after 12 hours idle or 14 days in all, and **re-checked against the database on every request** so disabling a user or a business ends access at once; signing out revokes it; a new session is created at every sign-in (no fixation). *Revisit* when passkeys, SSO or more than a handful of client users are wanted: then adopt a library behind the same `ClientSession` seam.
 
-**D44. One email address belongs to one business.** `client_users` carries the email, the business and a role (`owner`, `manager`, `agent`); there is no separate `users` table or many-to-many link as the target schema sketched. A roofer's office staff each belong to that one roofer. *Revisit* the first time a person genuinely works for two businesses (a franchise or an agency): split `users` out then, the session already carries only a user id and a business id.
+**D44. One email address belongs to one business.** `client_users` carries the email, the business and a role (`owner`, `manager`, `agent`); there is no separate `users` table or many-to-many link as the target schema sketched. An electrical business's office staff each belong to that one business. *Revisit* the first time a person genuinely works for two businesses (a franchise or an agency): split `users` out then, the session already carries only a user id and a business id.
 
 **D45. A business can never see another business's data: three layers, each tested.** (1) The only code the dashboard may call is `src/server/client`, whose every function takes the signed-in session and filters by its business (a guard test, like the admin one, fails if a page skips it, or imports the database directly). (2) **Row-level security** on the tables a business can reach (`lead_assignments`, `leads`, `lead_contacts` and the money tables as they arrive), keyed on a transaction setting `app.client_id` that one helper (`withClient`) sets: with it set, the database returns only that business's rows even if a query forgets its `WHERE`. When the setting is NOT set (staff, the worker, the router) the policies allow everything, so no existing path changes. That is the honest limit: the protection is only as good as "the dashboard always goes through `withClient`", which layer 1's guard test enforces. (3) A cross-tenant matrix test: for every dashboard read and write, business B's session is pointed at business A's ids and must get nothing and change nothing; it was mutation-checked by removing each layer in turn.
 
@@ -222,11 +227,11 @@ Two surviving mutants in the mutation checks are this redundancy showing up, not
 
 **D64. The coverage map is a picture we host, built once from OpenStreetMap.** A real street map, muted so the circles carry the colour, built by `npm run map:build` from about 50 tiles (fetched one at a time with an identifying User-Agent, cached in `.local`) into one WebP in `public/images`. A visitor's browser therefore asks no map provider for anything (no IP address leaves the site, no script, no cookie), which is why this is not an embedded map; a test asserts the page loads nothing from another origin. The picture carries the required credit ("Map © OpenStreetMap contributors", linking to the licence). Satellite imagery was declined: it needs a paid licence. The numbered circles are drawn over the picture from `src/config/coverage-map.ts` with exact Web Mercator maths, and a test asserts the picture's size matches the geometry the circles were drawn for. The circles are a guide to where we cover, never a boundary: the postcode checker decides.
 
-**D65. Look and feel.** Fraunces (headlines) and Inter (everything else), both self-hosted by the build from `@fontsource-variable` packages (no request to Google or a CDN; only the Latin subset a visitor needs is downloaded). Deep navy for trust and weight, terracotta copper (a roof tile) for every action, warm paper for surfaces; every text pair measured against WCAG AA (figures in `globals.css`). The same tokens re-skin the dashboard and admin.
+**D65. Look and feel.** Fraunces (headlines) and Inter (everything else), both self-hosted by the build from `@fontsource-variable` packages (no request to Google or a CDN; only the Latin subset a visitor needs is downloaded). Deep navy for trust and weight, electric teal for every action, warm paper for surfaces; every text pair measured against WCAG AA (figures in `globals.css`). The same tokens re-skin the dashboard and admin.
 
-**D66. What the site may claim about the businesses is only what we can prove.** The page says we pass an enquiry to ONE local roofing business that covers the postcode; it does not say "vetted", "trusted", "experienced", "established for years" or "reputable", or that we send "quotes". Those are claims about third parties that UK consumer-protection law treats as regulated (a misleading claim can be an offence, and the advertiser must be able to substantiate it); today no vetting exists, and the business, not us, gives the quote. *Revisit* when a real, recorded onboarding check exists (for example: company number matched at Companies House, proof of public liability insurance seen and in date, a minimum trading history, references): then the page can say exactly what is checked, and only for businesses that passed.
+**D66. What the site may claim about the businesses is only what we can prove.** The page says we pass an enquiry to ONE local electrical business that covers the postcode; it does not say "vetted", "trusted", "experienced", "established for years" or "reputable", or that we send "quotes". Those are claims about third parties that UK consumer-protection law treats as regulated (a misleading claim can be an offence, and the advertiser must be able to substantiate it); today no vetting exists, and the business, not us, gives the quote. *Revisit* when a real, recorded onboarding check exists (for example: company number matched at Companies House, proof of public liability insurance seen and in date, a minimum trading history, references): then the page can say exactly what is checked, and only for businesses that passed.
 
-**D67. Each trade is its own project, not a setting.** Roofing and boiler swaps/repairs (and any later trade) are separate codebases, repositories, databases, environments and deployments, each forked from the roofing project at a recorded commit (the boiler project notes its fork point in its own UPSTREAM.md). This was the owner's decision, replacing an earlier idea of one codebase switched by a `VERTICAL` setting. *Cost, accepted:* a fix made in one project does not reach the other by itself and has to be ported by hand, so the two can drift. *Benefit:* a change for one trade can never break the other, each can be sold, hosted, legally reviewed and handed on independently, and each product's wording and legal claims (for example, Gas Safe for boilers) stay with the people responsible for them. This repository is roofing only.
+**D67. Each trade is its own project, not a setting.** Roofing, boiler swaps/repairs and electrical work (and any later trade) are separate codebases, repositories, databases, environments and deployments, each forked from the roofing project at a recorded commit (the boiler project notes its fork point in its own UPSTREAM.md). This was the owner's decision, replacing an earlier idea of one codebase switched by a `VERTICAL` setting. *Cost, accepted:* a fix made in one project does not reach the other by itself and has to be ported by hand, so the two can drift. *Benefit:* a change for one trade can never break the other, each can be sold, hosted, legally reviewed and handed on independently, and each product's wording and legal claims (for example, Gas Safe for boilers) stay with the people responsible for them. This repository is roofing only.
 
 **Equivalent mutants (slice 5), kept on purpose:** three queries repeat `client_id = $1` as a backup for row-level security (the requests list, the coverage view, the performance counts); removing the filter alone changes nothing, removing the policy alone changes nothing, and the tenancy tests remove each layer in turn.
 
@@ -235,6 +240,49 @@ Two surviving mutants in the mutation checks are this redundancy showing up, not
 **Equivalent mutants (slice 3), kept on purpose:** `post_credit`'s own type check for `lead_charge` and `refund` is backed by the ledger's constraint that those need an assignment (the `expiry` type, which nothing else stops, has its own test); and the idempotency inside `post_credit` is backed by the ledger key's `UNIQUE` plus the function's unique-violation handler (removing BOTH fails a test).
 
 **Equivalent mutants (slice 2), kept on purpose:** declining an already-accepted lead is refused twice (a status check, then the compare-and-set on `notified -> rejected`); the two business-ownership checks in accept/decline are each the other's backup (removing both fails the test, removing one does not); and a business logging a call on another's lead is stopped by both the explicit `client_id` filter and row-level security.
+
+### Electrical decisions
+
+**E1. Electrical is a separate project, forked from roofing, not a second trade inside one codebase.** Your decision (D67, 2026-10-05):
+its own repository (`Lead-Gen-Electrical-`), database, brand, domain, worker and deployment, so nothing about electrical work can
+affect the roofing or boiler sites, and any of them can be changed, sold or switched off alone. The cost is that a bug fixed in one
+must be ported to the others by hand: UPSTREAM.md records the roofing commit this was forked from and how to port, and
+`src/config/no-roofing.test.ts` fails if a ported change brings roofing wording with it. Locally it runs beside the others on its
+own ports (web 3300, end-to-end 3310, key server 3399) and its own PostgreSQL cluster (54349). *Revisit* at the third trade, as B1
+says: that point has now been reached (roofing, boilers, electrical), so one codebase serving several trades may now be cheaper than
+porting every fix three ways. This is recorded, not acted on.
+
+**E2. Seven services, chosen by how the work is bought and who does it.** Fault or repair, consumer unit, rewire, EICR, EV charger,
+lighting/sockets/new circuits, and "something else". They differ a lot in value (a rewire is worth many times a socket), and a business
+that does one often does not do another: many installers do chargers but not inspection and testing, and the other way round. Routing
+already matches on service, so keeping them apart needs no new machinery: `tests/integration/electrical.test.ts` proves a charger job is
+never handed to a business that does not offer chargers (it is parked for a person) and that ranking cannot override it. The EICR scope
+asks whether it is for a rented property, because a landlord's job is time-bound and worth more than a routine check. *Revisit* if the
+first businesses want finer splits (smart home, solar and batteries, commercial testing): add a service, never a free-text field.
+
+**E3. An electrical emergency is never a lead.** Sparks, a burning smell, smoke or someone hurt by a shock means 999, not a form; a power
+cut or a fallen cable means 105 (free, 24 hours, Great Britain; checked 2026-10-06). The site says so above the form on every screen size
+(one line, so the first question is still visible on a phone without scrolling), in full on the "when" question, and first in the FAQ,
+always with numbers a phone can dial (`src/config/safety.ts`, `SafetyNote`). The advice is deliberately minimal (ring first, switch off
+at the consumer unit only if it is safe, keep away from damaged wiring and anything wet) and is not a repair guide; have the solicitor
+read it with the consent wording. Northern Ireland has a different power-cut number: re-check before the footprint leaves Great Britain.
+
+**E4. No competent-person-scheme claims until we check registrations ourselves.** "NICEIC / NAPIT registered" is the most persuasive thing
+an electrician site can say, and the one that would most mislead if untrue: in England, notifiable work (new circuits, a consumer unit
+replacement, work in a bathroom or kitchen where the rules apply) must be done by a registered competent person or notified to building
+control, so a false claim matters (D66 applies with more force). The site only advises consumers how to check (FAQ, terms: ask for the
+registration, check it on the scheme's own register, ask for the certificate afterwards) and never says a business is registered,
+vetted or approved; `src/config/verticals/electrical.test.ts` fails if those words appear in the service copy. *To make the claim:*
+record each business's scheme and registration number in the admin, check it on activation and periodically, refuse to activate without
+it, and only then change the copy (and have the solicitor look at the wording). The runbook check before activating a business is manual
+and unrecorded.
+
+**E5. Electrical wording, published once.** The consent text names "one local electrical business" and "my electrical enquiry", published
+as `share_with_business@v1` in this project's own archive (a test pins its hash). The urgent answer means "no power, or it feels unsafe
+right now". The pages call the person who will ring "the electrician" and the company that receives the details "the electrical
+business". The FAQ states that landlords of privately rented homes in England must have their wiring inspected at least every 5 years
+(EICR); that is a statement of the law as checked 2026-10-06, so re-check it if the regulations change. The teal brand colour replaces
+roofing's copper (every pair measured against WCAG AA in `globals.css`).
 
 ## 3. What could not be verified
 

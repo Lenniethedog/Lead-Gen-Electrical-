@@ -26,7 +26,7 @@ describe("step schemas", () => {
   });
 
   it("only allows the configured services and property answers", () => {
-    expect(serviceStepSchema.safeParse({ service: "roof_repair" }).success).toBe(true);
+    expect(serviceStepSchema.safeParse({ service: "fault_repair" }).success).toBe(true);
     expect(serviceStepSchema.safeParse({ service: "plumbing" }).success).toBe(false);
     expect(propertyStepSchema.safeParse({ propertyType: "flat", ownership: "owner" }).success).toBe(true);
     expect(propertyStepSchema.safeParse({ propertyType: "castle", ownership: "owner" }).success).toBe(false);
@@ -35,9 +35,9 @@ describe("step schemas", () => {
   });
 
   it("validates the scope against the chosen service", () => {
-    expect(scopeStepSchema("roof_repair").safeParse({ scope: "leak" }).success).toBe(true);
-    expect(scopeStepSchema("roof_repair").safeParse({ scope: "full_replacement" }).success).toBe(false);
-    expect(scopeStepSchema("new_roof").safeParse({ scope: "full_replacement" }).success).toBe(true);
+    expect(scopeStepSchema("fault_repair").safeParse({ scope: "no_power" }).success).toBe(true);
+    expect(scopeStepSchema("fault_repair").safeParse({ scope: "full_rewire" }).success).toBe(false);
+    expect(scopeStepSchema("rewire").safeParse({ scope: "full_rewire" }).success).toBe(true);
   });
 });
 
@@ -102,7 +102,7 @@ describe("parseLeadSubmission", () => {
   });
 
   it("rejects a scope that does not belong to the service", () => {
-    expect(fieldsOf(wirePayload({ service: "chimney", scope: "leak" })).scope).toBeDefined();
+    expect(fieldsOf(wirePayload({ service: "consumer_unit", scope: "no_power" })).scope).toBeDefined();
   });
 
   it("strips unknown fields instead of passing them through", () => {

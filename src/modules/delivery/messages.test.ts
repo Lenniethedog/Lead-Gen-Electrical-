@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildSmsBody, buildWebhookBody, type DeliveryData } from "./messages";
 
 const data = (overrides: Partial<DeliveryData> = {}): DeliveryData => ({
-  notificationId: "n1", assignmentId: "a1", leadId: "l1", reference: "L-ABCDE-12345", serviceSlug: "roof_repair", serviceLabel: "Roof repair or leak", scope: "leak",
+  notificationId: "n1", assignmentId: "a1", leadId: "l1", reference: "L-ABCDE-12345", serviceSlug: "fault_repair", serviceLabel: "Electrical fault or repair", scope: "no_power",
   urgency: "emergency", propertyType: "house", ownership: "owner", postcode: "BR6 0AA", postcodeOutward: "BR6", createdAt: new Date("2026-10-05T10:00:00Z"), pricePence: 3500,
   contact: { name: "Margaret Oyelaran", phone: "+447123456789", email: "m@example.com", notes: "Side gate code 4821" },
   client: { id: "c1", name: "Kestrel", contactName: "Dave", contactEmail: "dave@k.example", contactPhone: "+447123000000", webhookUrl: null, webhookSecretEnc: null },
@@ -10,13 +10,13 @@ const data = (overrides: Partial<DeliveryData> = {}): DeliveryData => ({
 });
 
 describe("the text message", () => {
-  it("carries what a roofer needs to act on, and nothing more: first name, phone, area, job, urgency, reference", () => {
-    const body = buildSmsBody(data(), "RoofQuote Local");
+  it("carries what a electrician needs to act on, and nothing more: first name, phone, area, job, urgency, reference", () => {
+    const body = buildSmsBody(data(), "SparkQuote Local");
     expect(body).toContain("L-ABCDE-12345");
     expect(body).toContain("Margaret,");
     expect(body).toContain("+447123456789");
     expect(body).toContain("BR6");
-    expect(body).toContain("Roof repair or leak");
+    expect(body).toContain("Electrical fault or repair");
     for (const withheld of ["Oyelaran", "m@example.com", "BR6 0AA", "4821"]) expect(body).not.toContain(withheld);
   });
   it("is plain ASCII on one line and never longer than two segments", () => {

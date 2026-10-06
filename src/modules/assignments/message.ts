@@ -25,7 +25,7 @@ export function buildHandoverMessage(data: HandoverData, brandName: string): { s
     `Email:     ${data.contact.email}`,
     ...(data.contact.notes ? [`Note from them: ${data.contact.notes.replace(/\s+/g, " ").trim()}`] : []),
     "",
-    "Please contact them as soon as you can. They asked to be contacted about this job and agreed to share their details with one local roofing business.",
+    "Please contact them as soon as you can. They asked to be contacted about this job and agreed to share their details with one local electrical business.",
     "Please use their details only for this enquiry, and delete them if they ask you to.",
     "Reply to confirm you have received it.",
   ];

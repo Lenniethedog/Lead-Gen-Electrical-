@@ -80,7 +80,7 @@ describe("the switch", () => {
 describe("handing the lead over", () => {
   it("assigns the only eligible business at the price from the pricing rules, and records who and why", async () => {
     env = await buildRouting({ price: 4200 });
-    const client = await env.s.activeClient(env.owner, { name: "Only Roofing" });
+    const client = await env.s.activeClient(env.owner, { name: "Only Electrical" });
     await env.turnOn();
     const lead = await insertRawLead(env.t.admin);
 
@@ -195,8 +195,8 @@ describe("handing the lead over", () => {
     expect(await env.routing.routeNext()).toMatchObject({ outcome: "no_candidates" }); // nobody exists
     expect(await env.leadRow(lead.id)).toMatchObject({ status: "unroutable" });
 
-    const roofer = await env.s.activeClient(env.owner, { name: "Late Roofer", outward: ["TN13"] });
-    const result = await env.s.assignments.assign({ operator: env.staff, leadId: lead.id, clientId: roofer, coverageException: true, requestId: env.s.rid() });
+    const electrician = await env.s.activeClient(env.owner, { name: "Late Electrician", outward: ["TN13"] });
+    const result = await env.s.assignments.assign({ operator: env.staff, leadId: lead.id, clientId: electrician, coverageException: true, requestId: env.s.rid() });
     expect(result).toMatchObject({ ok: true, outsideCoverage: true });
     expect(await env.leadRow(lead.id)).toMatchObject({ status: "assigned" });
   });

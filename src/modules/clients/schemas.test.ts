@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { METRES_PER_MILE, describeRule, parseClientInput, parseCoverageRule, statusNeedsReason } from "./schemas";
 
-const valid = { name: "Dave's Roofing", contactEmail: "Dave@Example.com", acceptsExclusive: "on" };
+const valid = { name: "Dave's Electrical", contactEmail: "Dave@Example.com", acceptsExclusive: "on" };
 
 describe("parseClientInput", () => {
   it("accepts the minimum, lower-casing the email and treating empty optional fields as absent", () => {
     const result = parseClientInput({ ...valid, legalName: "", companyNumber: "  ", contactName: "", contactPhone: "", notes: "" });
     expect(result).toEqual({
       ok: true,
-      value: { name: "Dave's Roofing", legalName: undefined, companyNumber: undefined, contactName: undefined, contactEmail: "dave@example.com", contactPhone: undefined, acceptsExclusive: true, acceptsShared: false, notes: undefined },
+      value: { name: "Dave's Electrical", legalName: undefined, companyNumber: undefined, contactName: undefined, contactEmail: "dave@example.com", contactPhone: undefined, acceptsExclusive: true, acceptsShared: false, notes: undefined },
     });
   });
 

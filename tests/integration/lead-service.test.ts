@@ -53,7 +53,7 @@ describe("creating a lead", () => {
       property_type: "house",
       ownership: "owner",
       urgency: "within_2_weeks",
-      details: { scope: "leak" },
+      details: { scope: "no_power" },
       fraud_score: 0,
       fraud_decision: "accept",
       duplicate_of_lead_id: null,
@@ -190,8 +190,8 @@ describe("duplicate prevention", () => {
   it("does not treat a different job from the same person as a duplicate", async () => {
     const service = buildLeadService(t.db);
     const k = next();
-    const a = await service.submit(command(validSubmission({ service: "roof_repair", scope: "leak" }, k)));
-    const otherService = await service.submit(command(validSubmission({ service: "chimney", scope: "leadwork" }, k)));
+    const a = await service.submit(command(validSubmission({ service: "fault_repair", scope: "no_power" }, k)));
+    const otherService = await service.submit(command(validSubmission({ service: "consumer_unit", scope: "upgrade_consumer_unit" }, k)));
     const otherArea = await service.submit(command(validSubmission({ postcode: "TN13 1AA" }, k)));
     expect(a.status).toBe("new");
     expect(otherService.status).toBe("new");
@@ -201,17 +201,17 @@ describe("duplicate prevention", () => {
   it("stops matching once the duplicate window has passed", async () => {
     const service = buildLeadService(t.db);
     const k = next();
-    const first = await service.submit(command(validSubmission({ service: "flat_roof", scope: "replace" }, k)));
+    const first = await service.submit(command(validSubmission({ service: "ev_charger", scope: "home_charger" }, k)));
     await sql`update leads set created_at = now() - interval '20 days' where id = ${first.leadId}`.execute(t.admin);
-    const again = await service.submit(command(validSubmission({ service: "flat_roof", scope: "replace" }, k)));
+    const again = await service.submit(command(validSubmission({ service: "ev_charger", scope: "home_charger" }, k)));
     expect(again.status).toBe("new");
   });
 
   it("does not let a bot's fraud-rejected attempt swallow the real person's retry", async () => {
     const service = buildLeadService(t.db);
     const k = next();
-    const bot = await service.submit(command(validSubmission({ service: "guttering_fascias", scope: "replace", context: { honeypot: "bot" } }, k)));
-    const person = await service.submit(command(validSubmission({ service: "guttering_fascias", scope: "replace" }, k)));
+    const bot = await service.submit(command(validSubmission({ service: "lighting_sockets", scope: "extra_sockets", context: { honeypot: "bot" } }, k)));
+    const person = await service.submit(command(validSubmission({ service: "lighting_sockets", scope: "extra_sockets" }, k)));
     expect(bot.status).toBe("rejected_fraud");
     expect(person.status).toBe("new");
   });
@@ -282,9 +282,9 @@ describe("fraud screening decides the initial state", () => {
   it("flags a phone number that reappears with a different email (and vice versa)", async () => {
     const service = buildLeadService(t.db);
     const k = next();
-    await service.submit(command(validSubmission({ service: "roof_inspection", scope: "condition_survey" }, k)));
-    const sameEmailOtherPhone = await service.submit(command(validSubmission({ service: "chimney", scope: "unsure", contact: { phone: "07911 188888" } }, k)));
-    const samePhoneOtherEmail = await service.submit(command(validSubmission({ service: "new_roof", scope: "unsure", contact: { email: `different${k}@example.com` } }, k)));
+    await service.submit(command(validSubmission({ service: "eicr", scope: "periodic_check" }, k)));
+    const sameEmailOtherPhone = await service.submit(command(validSubmission({ service: "consumer_unit", scope: "unsure", contact: { phone: "07911 188888" } }, k)));
+    const samePhoneOtherEmail = await service.submit(command(validSubmission({ service: "rewire", scope: "unsure", contact: { email: `different${k}@example.com` } }, k)));
     const codesOf = async (id: string) => (await t.admin.selectFrom("lead_fraud_signals").select("code").where("lead_id", "=", id).execute()).map((s) => s.code);
     expect(await codesOf(sameEmailOtherPhone.leadId)).toContain("email_reused_with_other_identity");
     expect(await codesOf(samePhoneOtherEmail.leadId)).toContain("phone_reused_with_other_identity");
@@ -314,10 +314,10 @@ describe("rejections store nothing", () => {
   });
 
   it("rejects a service an operator has switched off (after the reference cache refreshes)", async () => {
-    await t.admin.updateTable("service_types").set({ active: false }).where("slug", "=", "chimney").execute();
+    await t.admin.updateTable("service_types").set({ active: false }).where("slug", "=", "consumer_unit").execute();
     const service = buildLeadService(t.db);
-    await expect(service.submit(command(validSubmission({ service: "chimney", scope: "unsure" }, next())))).rejects.toBeInstanceOf(ValidationError);
-    await t.admin.updateTable("service_types").set({ active: true }).where("slug", "=", "chimney").execute();
+    await expect(service.submit(command(validSubmission({ service: "consumer_unit", scope: "unsure" }, next())))).rejects.toBeInstanceOf(ValidationError);
+    await t.admin.updateTable("service_types").set({ active: true }).where("slug", "=", "consumer_unit").execute();
   });
 });
 

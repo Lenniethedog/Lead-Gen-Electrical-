@@ -34,8 +34,8 @@ const code = async (promise: Promise<unknown>) => ((await promise.then(() => ({}
 describe("clients", () => {
   it("requires a lower-case contact email, a valid E.164 phone, and at least one offer type", async () => {
     const vertical = await t.admin.selectFrom("verticals").select("id").executeTakeFirstOrThrow();
-    const base = { vertical_id: vertical.id, name: "Roofer", contact_email: "roofer@example.com" };
-    expect((await code(t.admin.insertInto("clients").values({ ...base, contact_email: "Roofer@Example.com" }).execute())).code).toBe("23514");
+    const base = { vertical_id: vertical.id, name: "Electrician", contact_email: "electrician@example.com" };
+    expect((await code(t.admin.insertInto("clients").values({ ...base, contact_email: "Electrician@Example.com" }).execute())).code).toBe("23514");
     expect((await code(t.admin.insertInto("clients").values({ ...base, contact_phone_e164: "07911 123456" }).execute())).code).toBe("23514");
     expect((await code(t.admin.insertInto("clients").values({ ...base, accepts_exclusive: false, accepts_shared: false }).execute())).code).toBe("23514");
     expect((await code(t.admin.insertInto("clients").values({ ...base, name: "" }).execute())).code).toBe("23514");

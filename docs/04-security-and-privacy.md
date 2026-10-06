@@ -87,9 +87,9 @@ The text also fixes `recipient_model` and `max_recipients`, and the router may n
 
 | Variant | When | Wording (brand and category substituted) | Router rule |
 | --- | --- | --- | --- |
-| **A. "We will contact you ourselves"** (first-party) | You, or your call centre, qualify the enquiry before any hand-off | "I agree that **{Brand}** may contact me by phone, text message or email about my roofing enquiry, including to help me find a suitable local roofing business. I have read the **Privacy Notice**." | `first_party`, `max_recipients = 0`: **no assignment to a client may be created** |
-| **B. "We will share your details with a local business"** (shipped) | Each enquiry is passed to one business | "I agree that **{Brand}** may share the details I have entered with **one local roofing business that covers my area**, so that they can contact me by phone, text message, WhatsApp or email about my roofing enquiry. I have read the **Privacy Notice**." | `shared_one`, `max_recipients = 1` |
-| **C. Shared with several** (only if you build shared leads) | Overflow/shared product | As B but "**up to {N} local roofing businesses** that cover my area" | `shared_multiple`, `max_recipients = N` |
+| **A. "We will contact you ourselves"** (first-party) | You, or your call centre, qualify the enquiry before any hand-off | "I agree that **{Brand}** may contact me by phone, text message or email about my electrical enquiry, including to help me find a suitable local electrical business. I have read the **Privacy Notice**." | `first_party`, `max_recipients = 0`: **no assignment to a client may be created** |
+| **B. "We will share your details with a local business"** (shipped) | Each enquiry is passed to one business | "I agree that **{Brand}** may share the details I have entered with **one local electrical business that covers my area**, so that they can contact me by phone, text message, WhatsApp or email about my electrical enquiry. I have read the **Privacy Notice**." | `shared_one`, `max_recipients = 1` |
+| **C. Shared with several** (only if you build shared leads) | Overflow/shared product | As B but "**up to {N} local electrical businesses** that cover my area" | `shared_multiple`, `max_recipients = N` |
 
 Why the difference is technical, not cosmetic: in A the *platform* is the only party the consumer expects a call from, so passing the
 lead to a business without fresh consent would breach purpose and consent limits; in B/C the consent *names the category and the number* of

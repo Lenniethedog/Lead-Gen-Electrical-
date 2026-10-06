@@ -17,7 +17,7 @@ beforeAll(async () => {
   t = await createTestDatabase();
   s = buildStage3(t);
   ops = await s.operator("delivery-settings@example.com");
-  clients = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "roofing", secretsKey: key });
+  clients = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "electrical", secretsKey: key });
 });
 afterAll(async () => {
   await t.destroy();
@@ -84,7 +84,7 @@ describe("the webhook signing secret", () => {
 
   it("cannot be generated without the encryption key, and a webhook can then be switched on", async () => {
     const id = await s.activeClient(ops);
-    const bare = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "roofing" });
+    const bare = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "electrical" });
     expect(await bare.rotateWebhookSecret({ operator: ops, clientId: id, requestId: s.rid() })).toEqual({ ok: false, code: "secrets_unavailable" });
     await clients.rotateWebhookSecret({ operator: ops, clientId: id, requestId: s.rid() });
     expect(await clients.setDeliverySettings({ operator: ops, clientId: id, settings: { mode: "automatic", email: false, sms: false, webhook: true, webhookUrl: "https://crm.example.com/h" }, requestId: s.rid() })).toEqual({ ok: true });

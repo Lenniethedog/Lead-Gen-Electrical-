@@ -12,7 +12,7 @@ const rid = () => `req-${crypto.randomUUID().slice(0, 8)}`;
 
 beforeAll(async () => {
   t = await createTestDatabase();
-  clients = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "roofing" });
+  clients = createClientService({ db: t.db, logger: pino({ level: "silent" }), verticalSlug: "electrical" });
   alice = await ensureOperator(t.db, "alice@example.com");
 });
 afterAll(async () => {
@@ -20,7 +20,7 @@ afterAll(async () => {
 });
 
 function input(overrides: Record<string, string> = {}): ClientInput {
-  const parsed = parseClientInput({ name: "Dave's Roofing", contactEmail: "dave@example.com", acceptsExclusive: "on", ...overrides });
+  const parsed = parseClientInput({ name: "Dave's Electrical", contactEmail: "dave@example.com", acceptsExclusive: "on", ...overrides });
   if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors));
   return parsed.value;
 }
@@ -28,9 +28,9 @@ const create = async (overrides: Record<string, string> = {}) => (await clients.
 const auditFor = (id: string) => t.admin.selectFrom("audit_logs").selectAll().where("entity_id", "=", id).orderBy("id").execute();
 
 /** A client that is ready to go active: one service and one include rule. */
-async function readyClient(name = "Ready Roofing") {
+async function readyClient(name = "Ready Electrical") {
   const id = await create({ name });
-  await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["roof_repair"], requestId: rid() });
+  await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["fault_repair"], requestId: rid() });
   await clients.addRule({ operator: alice, clientId: id, rule: { mode: "include", kind: "outward", outward: "BR6" }, requestId: rid() });
   return id;
 }
@@ -39,27 +39,27 @@ describe("creating and editing a client", () => {
   it("creates a prospect and records who did it", async () => {
     const id = await create({ contactPhone: "07911 123456" });
     const detail = (await clients.detail(id))!;
-    expect(detail).toMatchObject({ name: "Dave's Roofing", status: "prospect", contactEmail: "dave@example.com", contactPhone: "+447911123456", acceptsExclusive: true, acceptsShared: false });
+    expect(detail).toMatchObject({ name: "Dave's Electrical", status: "prospect", contactEmail: "dave@example.com", contactPhone: "+447911123456", acceptsExclusive: true, acceptsShared: false });
     const [entry] = await auditFor(id);
     expect(entry).toMatchObject({ actor_type: "staff_user", actor_id: alice.id, action: "client.created", entity_type: "client" });
-    expect(entry!.after).toMatchObject({ name: "Dave's Roofing", status: "prospect", contact_email: "dave@example.com" });
+    expect(entry!.after).toMatchObject({ name: "Dave's Electrical", status: "prospect", contact_email: "dave@example.com" });
   });
 
   it("edits details and audits the before and after", async () => {
     const id = await create();
-    expect(await clients.update({ operator: alice, clientId: id, client: input({ name: "Dave & Sons Roofing", contactEmail: "office@daves.example" }), requestId: "req-edit" })).toEqual({ ok: true });
-    expect((await clients.detail(id))!).toMatchObject({ name: "Dave & Sons Roofing", contactEmail: "office@daves.example" });
+    expect(await clients.update({ operator: alice, clientId: id, client: input({ name: "Dave & Sons Electrical", contactEmail: "office@daves.example" }), requestId: "req-edit" })).toEqual({ ok: true });
+    expect((await clients.detail(id))!).toMatchObject({ name: "Dave & Sons Electrical", contactEmail: "office@daves.example" });
     const entry = (await auditFor(id)).at(-1)!;
     expect(entry).toMatchObject({ action: "client.updated", request_id: "req-edit" });
-    expect(entry.before).toMatchObject({ name: "Dave's Roofing", contact_email: "dave@example.com" });
-    expect(entry.after).toMatchObject({ name: "Dave & Sons Roofing", contact_email: "office@daves.example" });
+    expect(entry.before).toMatchObject({ name: "Dave's Electrical", contact_email: "dave@example.com" });
+    expect(entry.after).toMatchObject({ name: "Dave & Sons Electrical", contact_email: "office@daves.example" });
   });
 
   it("reports an unknown client rather than inventing one", async () => {
     const ghost = crypto.randomUUID();
     expect(await clients.update({ operator: alice, clientId: ghost, client: input(), requestId: rid() })).toEqual({ ok: false, code: "not_found" });
     expect(await clients.detail(ghost)).toBeUndefined();
-    expect(await clients.setServices({ operator: alice, clientId: ghost, serviceSlugs: ["roof_repair"], requestId: rid() })).toEqual({ ok: false, code: "not_found" });
+    expect(await clients.setServices({ operator: alice, clientId: ghost, serviceSlugs: ["fault_repair"], requestId: rid() })).toEqual({ ok: false, code: "not_found" });
     expect(await clients.addRule({ operator: alice, clientId: ghost, rule: { mode: "include", kind: "outward", outward: "BR6" }, requestId: rid() })).toEqual({ ok: false, code: "not_found" });
     expect(await clients.setStatus({ operator: alice, clientId: ghost, status: "active", requestId: rid() })).toEqual({ ok: false, code: "not_found" });
   });
@@ -79,7 +79,7 @@ describe("status: an active client must be able to receive a lead", () => {
   it("refuses to activate a client with no service or no include rule, and says why in the audit only when it works", async () => {
     const id = await create();
     expect(await clients.setStatus({ operator: alice, clientId: id, status: "active", requestId: rid() })).toEqual({ ok: false, code: "not_ready" });
-    await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["roof_repair"], requestId: rid() });
+    await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["fault_repair"], requestId: rid() });
     expect(await clients.setStatus({ operator: alice, clientId: id, status: "active", requestId: rid() })).toEqual({ ok: false, code: "not_ready" });
     await clients.addRule({ operator: alice, clientId: id, rule: { mode: "exclude", kind: "outward", outward: "BR6" }, requestId: rid() });
     expect(await clients.setStatus({ operator: alice, clientId: id, status: "active", requestId: rid() })).toEqual({ ok: false, code: "not_ready" }); // an EXCLUDE rule alone covers nowhere
@@ -106,14 +106,14 @@ describe("status: an active client must be able to receive a lead", () => {
 describe("services", () => {
   it("replaces the set, rejects unknown services, and audits before and after", async () => {
     const id = await create();
-    expect(await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["roof_repair", "flat_roof", "roof_repair"], requestId: rid() })).toEqual({ ok: true });
-    expect((await clients.detail(id))!.services.map((service) => service.slug).sort()).toEqual(["flat_roof", "roof_repair"]);
-    expect(await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["chimney"], requestId: rid() })).toEqual({ ok: true });
-    expect((await clients.detail(id))!.services.map((service) => service.slug)).toEqual(["chimney"]);
+    expect(await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["fault_repair", "ev_charger", "fault_repair"], requestId: rid() })).toEqual({ ok: true });
+    expect((await clients.detail(id))!.services.map((service) => service.slug).sort()).toEqual(["ev_charger", "fault_repair"]);
+    expect(await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["consumer_unit"], requestId: rid() })).toEqual({ ok: true });
+    expect((await clients.detail(id))!.services.map((service) => service.slug)).toEqual(["consumer_unit"]);
     expect(await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["not_a_service"], requestId: rid() })).toEqual({ ok: false, code: "unknown_service" });
     const entry = (await auditFor(id)).at(-1)!;
-    expect(entry.before).toEqual({ services: ["flat_roof", "roof_repair"] });
-    expect(entry.after).toEqual({ services: ["chimney"] });
+    expect(entry.before).toEqual({ services: ["ev_charger", "fault_repair"] });
+    expect(entry.after).toEqual({ services: ["consumer_unit"] });
   });
 
   it("will not empty the services of an active client", async () => {
@@ -215,7 +215,7 @@ describe("no pool deadlock: more concurrent operations than connections", () => 
     expect(new Set(results.map((result) => result.id)).size).toBe(25);
     const ruled = await Promise.all(results.map((result, i) => clients.addRule({ operator: alice, clientId: result.id, rule: { mode: "include", kind: "outward", outward: i % 2 ? "BR1" : "BR2" }, requestId: rid() })));
     expect(ruled.every((result) => result.ok)).toBe(true);
-    const services = await Promise.all(results.map((result) => clients.setServices({ operator: alice, clientId: result.id, serviceSlugs: ["roof_repair"], requestId: rid() })));
+    const services = await Promise.all(results.map((result) => clients.setServices({ operator: alice, clientId: result.id, serviceSlugs: ["fault_repair"], requestId: rid() })));
     expect(services.every((result) => result.ok)).toBe(true);
     const status = await Promise.all(results.map((result) => clients.setStatus({ operator: alice, clientId: result.id, status: "active", requestId: rid() })));
     expect(status.every((result) => result.ok)).toBe(true);
@@ -227,7 +227,7 @@ describe("every change is audited with the operator", () => {
     const id = await create(); // 1
     const base = (await auditFor(id)).length;
     await clients.update({ operator: alice, clientId: id, client: input({ name: "Renamed" }), requestId: rid() }); // +1
-    await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["roof_repair"], requestId: rid() }); // +1
+    await clients.setServices({ operator: alice, clientId: id, serviceSlugs: ["fault_repair"], requestId: rid() }); // +1
     await clients.addRule({ operator: alice, clientId: id, rule: { mode: "include", kind: "outward", outward: "BR1" }, requestId: rid() }); // +1
     await clients.setStatus({ operator: alice, clientId: id, status: "active", requestId: rid() }); // +1
     await clients.setStatus({ operator: alice, clientId: id, status: "active", requestId: rid() }); // refused: same status

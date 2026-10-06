@@ -12,7 +12,7 @@ export async function insertRawClient(
   overrides: { name?: string; status?: "prospect" | "active" | "paused" | "suspended" | "churned"; email?: string; services?: boolean } = {},
 ): Promise<{ id: string; email: string }> {
   clientCounter += 1;
-  const vertical = await db.selectFrom("verticals").select("id").where("slug", "=", "roofing").executeTakeFirstOrThrow();
+  const vertical = await db.selectFrom("verticals").select("id").where("slug", "=", "electrical").executeTakeFirstOrThrow();
   const email = overrides.email ?? `client${clientCounter}.${randomBytes(3).toString("hex")}@example.com`;
   const client = await db
     .insertInto("clients")
@@ -75,8 +75,8 @@ export async function insertRawLead(
   } = {},
 ): Promise<{ id: string; reference: string }> {
   const [vertical, serviceType, source, consentText] = await Promise.all([
-    db.selectFrom("verticals").select("id").where("slug", "=", "roofing").executeTakeFirstOrThrow(),
-    db.selectFrom("service_types").select("id").where("slug", "=", "roof_repair").executeTakeFirstOrThrow(),
+    db.selectFrom("verticals").select("id").where("slug", "=", "electrical").executeTakeFirstOrThrow(),
+    db.selectFrom("service_types").select("id").where("slug", "=", "fault_repair").executeTakeFirstOrThrow(),
     db.selectFrom("lead_sources").select("id").where("slug", "=", "direct").executeTakeFirstOrThrow(),
     db.selectFrom("consent_texts").select("id").executeTakeFirstOrThrow(),
   ]);
@@ -99,7 +99,7 @@ export async function insertRawLead(
         ownership: "owner",
         urgency: overrides.urgency ?? "within_2_weeks",
         ...(overrides.isTest && { is_test: true }),
-        details: JSON.stringify({ scope: "leak" }),
+        details: JSON.stringify({ scope: "no_power" }),
         fraud_score: 0,
         fraud_decision: overrides.fraudDecision ?? "accept",
         duplicate_of_lead_id: overrides.duplicateOfLeadId ?? null,

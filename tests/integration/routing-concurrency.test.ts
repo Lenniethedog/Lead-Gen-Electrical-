@@ -25,7 +25,7 @@ afterEach(async () => {
 function worker(name: string): RoutingService {
   const db = createDb({ url: env.t.appUrl, poolMax: 3, applicationName: name, timeouts: { statementMs: 10_000, lockMs: 5_000, idleInTransactionMs: 15_000 } });
   extraPools.push(db);
-  return createRoutingService({ db, logger: pino({ level: "silent" }), verticalSlug: "roofing", isSuppressed: env.s.privacy.isSuppressed });
+  return createRoutingService({ db, logger: pino({ level: "silent" }), verticalSlug: "electrical", isSuppressed: env.s.privacy.isSuppressed });
 }
 
 const activeHeld = async (leadId?: string) => {
@@ -163,7 +163,7 @@ describe("a worker that dies", () => {
     // Hold the routing lock longer than the worker is willing to wait (lock_timeout 1 s here).
     const impatient = createDb({ url: env.t.appUrl, poolMax: 2, applicationName: "router-impatient", timeouts: { statementMs: 10_000, lockMs: 1_000, idleInTransactionMs: 15_000 } });
     extraPools.push(impatient);
-    const router = createRoutingService({ db: impatient, logger: pino({ level: "silent" }), verticalSlug: "roofing", isSuppressed: env.s.privacy.isSuppressed });
+    const router = createRoutingService({ db: impatient, logger: pino({ level: "silent" }), verticalSlug: "electrical", isSuppressed: env.s.privacy.isSuppressed });
 
     const vertical = await env.t.admin.selectFrom("verticals").select("id").executeTakeFirstOrThrow();
     let release!: () => void;
@@ -355,7 +355,7 @@ describe("waking the router", () => {
       const held = await insertRawLead(env.t.admin, { status: "held", fraudDecision: "review" });
       const inbox = createInboxService({ db: env.t.db, logger: pino({ level: "silent" }) });
       await expectWake("a held lead approved", () => inbox.approve({ operator: env.staff, leadId: held.id, reason: "genuine", requestId: env.s.rid() }));
-      await expectWake("a client edited", () => env.s.clients.update({ operator: env.owner, clientId: client, client: { name: "Renamed", contactEmail: "r@roofer.example", contactPhone: undefined, contactName: undefined, legalName: undefined, companyNumber: undefined, acceptsExclusive: true, acceptsShared: false, notes: undefined }, requestId: env.s.rid() }));
+      await expectWake("a client edited", () => env.s.clients.update({ operator: env.owner, clientId: client, client: { name: "Renamed", contactEmail: "r@electrician.example", contactPhone: undefined, contactName: undefined, legalName: undefined, companyNumber: undefined, acceptsExclusive: true, acceptsShared: false, notes: undefined }, requestId: env.s.rid() }));
       await expectWake("a price set", () => env.s.setPrice(env.owner, 4000));
       await expectWake("a coverage rule added", () => env.s.clients.addRule({ operator: env.owner, clientId: client, rule: { mode: "include", kind: "outward", outward: "BR5" }, requestId: env.s.rid() }));
       await expectWake("working hours changed", () => env.hours(client, [{ weekday: 1, opens: "09:00", closes: "17:00" }]));

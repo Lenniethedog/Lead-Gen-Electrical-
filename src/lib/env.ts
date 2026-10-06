@@ -16,8 +16,8 @@ const LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace", "silent"
 
 /** Defaults used outside production so the app runs on a fresh checkout. */
 const DEV_BRAND = {
-  BRAND_NAME: "RoofQuote Local",
-  BRAND_LEGAL_NAME: "RoofQuote Local Ltd (placeholder)",
+  BRAND_NAME: "SparkQuote Local",
+  BRAND_LEGAL_NAME: "SparkQuote Local Ltd (placeholder)",
   BRAND_COMPANY_NUMBER: "00000000 (placeholder)",
   BRAND_REGISTERED_ADDRESS: "1 Placeholder Street, Orpington, Kent, BR0 0XX (placeholder)",
   BRAND_ICO_REGISTRATION: "ZA000000 (placeholder)",

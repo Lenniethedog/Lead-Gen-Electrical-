@@ -1,5 +1,5 @@
 import type { Ownership, PropertyType, Urgency } from "@/config/lead-options";
-import { isValidScope, type ServiceSlug } from "@/config/verticals/roofing";
+import { isValidScope, type ServiceSlug } from "@/config/verticals/electrical";
 import { normalisePostcode } from "@/modules/postcodes/normalise";
 
 /**

@@ -108,7 +108,7 @@ export function ContactStep({
       }}
     >
       <h2 id="step-heading" ref={headingRef} tabIndex={-1} className="text-2xl font-bold leading-tight text-ink outline-none">
-        How can the roofer contact you?
+        How can the electrician contact you?
       </h2>
       <p className="mt-1.5 text-base text-muted">Free, with no obligation to accept any quote.</p>
 
@@ -172,7 +172,7 @@ export function ContactStep({
         {showNotes ? (
           <div>
             <label htmlFor={FIELD_IDS.notes} className="block text-base font-semibold text-ink">
-              Anything else the roofer should know? <span className="font-normal text-muted">(optional)</span>
+              Anything else the electrician should know? <span className="font-normal text-muted">(optional)</span>
             </label>
             <textarea
               id={FIELD_IDS.notes}

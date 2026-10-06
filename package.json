@@ -1,16 +1,16 @@
 {
-  "name": "leadgen",
+  "name": "electrical-lead-gen",
   "version": "0.1.0",
   "private": true,
-  "description": "Local lead-generation platform: capture, validate, route and deliver consumer enquiries to local businesses.",
+  "description": "Electrical lead generation: capture, validate, route and deliver electrician enquiries to local electrical businesses.",
   "engines": {
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3300",
     "dev:pretty": "next dev 2>&1 | pino-pretty --ignore pid,hostname,service",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3300",
     "worker": "tsx src/workers/main.ts",
     "worker:dev": "tsx watch src/workers/main.ts 2>&1 | pino-pretty --ignore pid,hostname,service",
     "lint": "eslint .",

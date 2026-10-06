@@ -137,7 +137,7 @@ describe("leads nobody was told about", () => {
 describe("routing (stage 4)", () => {
   const routingProblems = async () => (await getRoutingHealth(t.db)).problems;
   const switchOn = async (enabledAgo = "1 hour") => {
-    await sql`insert into routing_settings (vertical_id, enabled, enabled_at) select id, true, now() - ${enabledAgo}::interval from verticals where slug = 'roofing'
+    await sql`insert into routing_settings (vertical_id, enabled, enabled_at) select id, true, now() - ${enabledAgo}::interval from verticals where slug = 'electrical'
               on conflict (vertical_id) do update set enabled = true, enabled_at = excluded.enabled_at`.execute(t.admin);
   };
   const switchOff = () => sql`update routing_settings set enabled = false`.execute(t.admin);

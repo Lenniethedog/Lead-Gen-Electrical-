@@ -122,11 +122,11 @@ test.describe("a new lead", () => {
 
   test("that nobody can take waits for a person, with the reasons, and can still be handed over by hand", async ({ page, request, baseURL }) => {
     await signInAsOwner(page);
-    // The businesses these tests create offer roof repair only, so a chimney job in BR6 has no business to go to.
+    // The businesses these tests create offer electrical fault repair only, so a consumer unit job in BR6 has no business to go to.
     const outsider = await createActiveClient(page, `E2E Route Outsider ${unique()}`);
     await setRouting(true);
 
-    const reference = await createLead(request, baseURL!, uniquePerson("Nobody"), "new", { service: "chimney", scope: "repair_repoint" });
+    const reference = await createLead(request, baseURL!, uniquePerson("Nobody"), "new", { service: "consumer_unit", scope: "replace_fuse_box" });
     expect(await routeNow()).toMatchObject({ unroutable: 1, assigned: 0, errors: 0 });
 
     await page.goto("/admin/leads");

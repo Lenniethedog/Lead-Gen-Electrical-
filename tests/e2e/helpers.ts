@@ -37,7 +37,7 @@ export async function leadsFor(email: string): Promise<Array<{ reference: string
   });
 }
 
-export const SERVICE = "Roof repair or leak";
+export const SERVICE = "Electrical fault or repair";
 
 /**
  * Clicks a choice tile the way a person does (the visible label), scoped to the radio groups so a
@@ -50,7 +50,7 @@ export async function chooseTile(page: Page, text: string) {
 export async function startForm(page: Page) {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "What roofing work do you need?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What electrical work do you need?" })).toBeVisible();
 }
 
 /** Jump straight to a step by seeding the form's own session-storage state (exercises restore too). */
@@ -72,12 +72,12 @@ export async function seedProgress(
           idempotencyKey: crypto.randomUUID(),
           startedAt: Date.now() - elapsedMs,
           values: {
-            service: "roof_repair",
+            service: "fault_repair",
             postcode: "BR6 0AA",
             coverage: { postcode: "BR6 0AA", areaName: "Orpington" },
             propertyType: "house",
             ownership: "owner",
-            scope: "leak",
+            scope: "no_power",
             urgency: "within_2_weeks",
             name: "",
             phone: "",

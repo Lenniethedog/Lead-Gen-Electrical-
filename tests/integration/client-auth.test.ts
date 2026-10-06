@@ -41,13 +41,13 @@ let outbox: Outbox;
 let auth: ReturnType<typeof createClientAuthService>;
 /** SHA-256 computed here, NOT with the code under test, so a broken hash function cannot agree with itself. */
 const sha256 = (secret: string): Buffer => createHash("sha256").update(secret, "utf8").digest();
-const email = () => `person-${crypto.randomUUID().slice(0, 8)}@roofer.example`;
+const email = () => `person-${crypto.randomUUID().slice(0, 8)}@electrician.example`;
 
 beforeAll(async () => {
   t = await createTestDatabase();
   s = buildStage3(t);
   ops = await s.operator("auth@example.com");
-  clientId = await s.activeClient(ops, { name: "Sign In Roofing" });
+  clientId = await s.activeClient(ops, { name: "Sign In Electrical" });
   outbox = new Outbox();
   auth = createClientAuthService({ db: t.db, logger: pino({ level: "silent" }), sender: outbox, appUrl: "https://www.example.co.uk/", brandName: "Test Brand" });
 });
@@ -152,7 +152,7 @@ describe("using a link", () => {
     expect(row.last_login_at).not.toBeNull();
     if (!result.ok) return;
     expect(result.sessionToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(await auth.resolve(result.sessionToken)).toMatchObject({ userId: person.userId, clientId, role: "agent", clientName: "Sign In Roofing" });
+    expect(await auth.resolve(result.sessionToken)).toMatchObject({ userId: person.userId, clientId, role: "agent", clientName: "Sign In Electrical" });
   });
 
   it("works ONCE: a second use of the same link is refused", async () => {

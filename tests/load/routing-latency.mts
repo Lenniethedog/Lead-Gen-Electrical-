@@ -1,8 +1,8 @@
 // How long from "lead stored" to "assigned to a business", measured on the REAL worker process(es) against a real PostgreSQL.
 //
-//   LOAD_DATABASE_URL=postgres://postgres@127.0.0.1:54329/leadgen_load npx tsx tests/load/routing-latency.mts
+//   LOAD_DATABASE_URL=postgres://postgres@127.0.0.1:54349/electrical_load npx tsx tests/load/routing-latency.mts
 //
-// !! Writes hundreds of leads and clients. The database name MUST contain "load" (CREATE DATABASE leadgen_load TEMPLATE leadgen_dev):
+// !! Writes hundreds of leads and clients. The database name MUST contain "load" (CREATE DATABASE electrical_load TEMPLATE electrical_dev):
 // the script refuses anything else.
 //
 // Two different numbers, and they are not the same thing:
@@ -15,7 +15,7 @@ import path from "node:path";
 import pino from "pino";
 import { sql } from "kysely";
 import { createDb } from "../../src/lib/db/client";
-import { ROOFING } from "../../src/config/verticals/roofing";
+import { ELECTRICAL } from "../../src/config/verticals/electrical";
 import { createClientService } from "../../src/modules/clients";
 import { ensureOperator } from "../../src/modules/inbox";
 import { createPricingService } from "../../src/modules/pricing";
@@ -41,21 +41,21 @@ await sql`update operator_alerts set status = 'cancelled', locked_until = null w
 // --- A small world: three active businesses covering BR6, one with a daily cap, prices, and routing switched on -------------------
 const owner = await ensureOperator(db, "load-owner@example.com", "owner");
 const rid = () => crypto.randomUUID();
-const clients = createClientService({ db, logger, verticalSlug: ROOFING.slug });
-const pricing = createPricingService({ db, logger, verticalSlug: ROOFING.slug });
+const clients = createClientService({ db, logger, verticalSlug: ELECTRICAL.slug });
+const pricing = createPricingService({ db, logger, verticalSlug: ELECTRICAL.slug });
 const privacy = createPrivacyService({ db, logger, hashKey: "load-test-privacy-hash-key-0123456789abcdef" });
-const routing = createRoutingService({ db, logger, verticalSlug: ROOFING.slug, isSuppressed: privacy.isSuppressed });
+const routing = createRoutingService({ db, logger, verticalSlug: ELECTRICAL.slug, isSuppressed: privacy.isSuppressed });
 
 await pricing.setPrice({ operator: owner, rule: { serviceSlug: null, serviceAreaSlug: null, urgency: null, saleType: "exclusive", pricePence: 3500 }, requestId: rid() });
-const names = ["Load Roofing A", "Load Roofing B", "Load Roofing C"];
+const names = ["Load Electrical A", "Load Electrical B", "Load Electrical C"];
 const ids: string[] = [];
 for (const [index, name] of names.entries()) {
   const { id } = await clients.create({
     operator: owner,
-    client: { name: `${name} ${Date.now()}`, contactEmail: `load${index}@roofer.example`, contactName: "Load", contactPhone: undefined, legalName: undefined, companyNumber: undefined, acceptsExclusive: true, acceptsShared: false, notes: undefined },
+    client: { name: `${name} ${Date.now()}`, contactEmail: `load${index}@electrician.example`, contactName: "Load", contactPhone: undefined, legalName: undefined, companyNumber: undefined, acceptsExclusive: true, acceptsShared: false, notes: undefined },
     requestId: rid(),
   });
-  await clients.setServices({ operator: owner, clientId: id, serviceSlugs: ["roof_repair"], requestId: rid() });
+  await clients.setServices({ operator: owner, clientId: id, serviceSlugs: ["fault_repair"], requestId: rid() });
   await clients.addRule({ operator: owner, clientId: id, rule: { mode: "include", kind: "outward", outward: "BR6" }, requestId: rid() });
   await clients.setStatus({ operator: owner, clientId: id, status: "active", requestId: rid() });
   ids.push(id);

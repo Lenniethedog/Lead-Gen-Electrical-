@@ -44,17 +44,17 @@ afterAll(async () => {
 });
 
 const clientRow = (id: string) => env.t.admin.selectFrom("clients").selectAll().where("id", "=", id).executeTakeFirstOrThrow();
-const settings = (over: Record<string, string> = {}) => ({ contactEmail: "new-leads@roofer.example", contactPhone: "07911 123456", notifyEmail: "on", notifySms: "on", ...over });
+const settings = (over: Record<string, string> = {}) => ({ contactEmail: "new-leads@electrician.example", contactPhone: "07911 123456", notifyEmail: "on", notifySms: "on", ...over });
 
 describe("how the business is told", () => {
   it("an owner changes where leads go and which ways are on, and it is audited with who and what", async () => {
     const before = await clientRow(aId);
     expect(await portal.saveNotificationSettings(owner, settings(), rid())).toEqual({ ok: true });
     const after = await clientRow(aId);
-    expect(after).toMatchObject({ contact_email: "new-leads@roofer.example", contact_phone_e164: "+447911123456", notify_email: true, notify_sms: true });
+    expect(after).toMatchObject({ contact_email: "new-leads@electrician.example", contact_phone_e164: "+447911123456", notify_email: true, notify_sms: true });
     expect(before.contact_email).not.toBe(after.contact_email);
     const entry = await env.t.admin.selectFrom("audit_logs").selectAll().where("action", "=", "client.notification_settings_changed").where("entity_id", "=", aId).orderBy("id", "desc").executeTakeFirstOrThrow();
-    expect(entry).toMatchObject({ actor_type: "client_user", actor_id: owner.userId, after: { contact_email: "new-leads@roofer.example", notify_sms: true, contact_phone_set: true, address_changed: true } });
+    expect(entry).toMatchObject({ actor_type: "client_user", actor_id: owner.userId, after: { contact_email: "new-leads@electrician.example", notify_sms: true, contact_phone_set: true, address_changed: true } });
     expect(JSON.stringify(entry)).not.toContain("07911"); // the number itself is not copied into the trail
   });
 
@@ -106,7 +106,7 @@ describe("how the business is told", () => {
 
   it("changes ONLY those four columns, whatever else is posted", async () => {
     const before = await clientRow(aId);
-    const result = await portal.saveNotificationSettings(owner, { ...settings({ contactEmail: "only-this@roofer.example" }), name: "Hijacked", status: "suspended", deliveryMode: "automatic", billingMode: "prepaid", weight: "99", priority: "0", webhookUrl: "https://evil.example/x", maxOpenLeads: "1", daily_lead_cap: "1" }, rid());
+    const result = await portal.saveNotificationSettings(owner, { ...settings({ contactEmail: "only-this@electrician.example" }), name: "Hijacked", status: "suspended", deliveryMode: "automatic", billingMode: "prepaid", weight: "99", priority: "0", webhookUrl: "https://evil.example/x", maxOpenLeads: "1", daily_lead_cap: "1" }, rid());
     expect(result).toEqual({ ok: true });
     const after = await clientRow(aId);
     for (const column of ["name", "status", "delivery_mode", "billing_mode", "weight", "priority", "webhook_url", "max_open_leads", "daily_lead_cap", "notify_webhook", "contact_name"] as const) {
@@ -114,12 +114,12 @@ describe("how the business is told", () => {
     }
     // Fixed values as well, not just "same as before": an earlier change to these (by a bug) must not be able to hide itself.
     expect(after).toMatchObject({ name: "Account A", status: "active", delivery_mode: "manual", billing_mode: "invoice", weight: 1, priority: 100, webhook_url: null, max_open_leads: null, daily_lead_cap: null, notify_webhook: false });
-    expect(after.contact_email).toBe("only-this@roofer.example");
+    expect(after.contact_email).toBe("only-this@electrician.example");
   });
 
   it("works on the signed-in business only: another business's settings are untouched", async () => {
     const theirs = await clientRow(bId);
-    await portal.saveNotificationSettings(owner, settings({ contactEmail: "mine@roofer.example" }), rid());
+    await portal.saveNotificationSettings(owner, settings({ contactEmail: "mine@electrician.example" }), rid());
     expect(await clientRow(bId)).toEqual(theirs);
     expect((await portal.notificationSettings(other))?.contactEmail).toBe(theirs.contact_email);
   });
@@ -128,7 +128,7 @@ describe("how the business is told", () => {
 describe("where and what the business covers", () => {
   it("shows its own services and coverage in words, never another business's", async () => {
     const view = await portal.serviceAreas(owner);
-    expect(view.services).toEqual(["Roof repair or leak"]);
+    expect(view.services).toEqual(["Electrical fault or repair"]);
     expect(view.rules.map((r) => r.description).sort()).toEqual(["Postcode district BR5", "Postcode district BR6"]);
     expect(view.rules.every((r) => r.mode === "include")).toBe(true);
     expect((await portal.serviceAreas(other)).rules.map((r) => r.description)).toEqual(["Postcode district TN13"]);
@@ -158,12 +158,12 @@ describe("asking for a change", () => {
   it("an owner or manager can ask; an agent cannot; the request is audited and visible to staff", async () => {
     expect(await portal.requestChange(agent, { kind: "coverage", message: "Please add BR1 and BR2" }, rid())).toEqual({ ok: false, code: "forbidden" });
     expect(await portal.requestChange(owner, { kind: "coverage", message: "Please add BR1 and BR2" }, rid())).toEqual({ ok: true });
-    expect(await portal.requestChange(manager, { kind: "services", message: "We now do flat roofs too" }, rid())).toEqual({ ok: true });
+    expect(await portal.requestChange(manager, { kind: "services", message: "We now do EV chargers too" }, rid())).toEqual({ ok: true });
     const mine = await portal.myChangeRequests(owner);
-    expect(mine.map((r) => r.message)).toEqual(["We now do flat roofs too", "Please add BR1 and BR2"]);
+    expect(mine.map((r) => r.message)).toEqual(["We now do EV chargers too", "Please add BR1 and BR2"]);
     expect((await portal.myChangeRequests(other))).toEqual([]);
     const open = await portal.openChangeRequests(aId);
-    expect(open.map((r) => r.message)).toEqual(["Please add BR1 and BR2", "We now do flat roofs too"]); // oldest first for staff
+    expect(open.map((r) => r.message)).toEqual(["Please add BR1 and BR2", "We now do EV chargers too"]); // oldest first for staff
     expect(open[0]).toMatchObject({ clientName: "Account A", kind: "coverage", status: "open" });
     expect(await env.t.admin.selectFrom("audit_logs").select("id").where("action", "=", "client.change_requested").where("entity_id", "=", aId).execute()).toHaveLength(2);
   });

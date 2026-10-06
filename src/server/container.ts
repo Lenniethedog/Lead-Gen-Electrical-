@@ -1,6 +1,6 @@
 import "server-only";
 import { buildConsent } from "@/config/consent";
-import { ROOFING } from "@/config/verticals/roofing";
+import { ELECTRICAL } from "@/config/verticals/electrical";
 import { getBrand } from "@/config/brand";
 import { getServerEnv } from "@/lib/env";
 import { getLogger } from "@/lib/logger";
@@ -100,7 +100,7 @@ function buildContainer(): Container {
         reference,
         challenge: createTurnstileVerifier({ secret: env.TURNSTILE_SECRET_KEY }),
         logger,
-        verticalSlug: ROOFING.slug,
+        verticalSlug: ELECTRICAL.slug,
         ownHost: new URL(env.APP_URL).hostname,
       }),
       logger,
@@ -112,7 +112,7 @@ function buildContainer(): Container {
     checkPostcode: {
       postcodes,
       reference,
-      verticalSlug: ROOFING.slug,
+      verticalSlug: ELECTRICAL.slug,
       logger,
       ipConfig,
       allowedOrigins,
@@ -121,12 +121,12 @@ function buildContainer(): Container {
     ready: { db, consent: buildConsent(getBrand().name), logger },
     pipeline: { db, logger },
     inbox: createInboxService({ db, logger }),
-    clients: createClientService({ db, logger, verticalSlug: ROOFING.slug, secretsKey: env.DELIVERY_SECRETS_KEY ? parseSecretsKey(env.DELIVERY_SECRETS_KEY) : undefined }),
-    coverage: createCoverageService({ db, verticalSlug: ROOFING.slug }),
-    pricing: createPricingService({ db, logger, verticalSlug: ROOFING.slug }),
+    clients: createClientService({ db, logger, verticalSlug: ELECTRICAL.slug, secretsKey: env.DELIVERY_SECRETS_KEY ? parseSecretsKey(env.DELIVERY_SECRETS_KEY) : undefined }),
+    coverage: createCoverageService({ db, verticalSlug: ELECTRICAL.slug }),
+    pricing: createPricingService({ db, logger, verticalSlug: ELECTRICAL.slug }),
     privacy,
     assignments,
-    routing: createRoutingService({ db, logger, verticalSlug: ROOFING.slug, isSuppressed: privacy.isSuppressed }),
+    routing: createRoutingService({ db, logger, verticalSlug: ELECTRICAL.slug, isSuppressed: privacy.isSuppressed }),
     delivery,
     twilioCallback: { delivery, logger, authToken: env.TWILIO_AUTH_TOKEN, callbackUrl: twilioCallbackUrl(env.APP_URL) },
     clientAuth: createClientAuthService({ db, logger, sender: createEmailSender(env), appUrl: env.APP_URL, brandName: getBrand().name }),

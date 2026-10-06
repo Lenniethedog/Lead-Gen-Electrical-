@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { isValidScope } from "@/config/verticals/roofing";
+import { isValidScope } from "@/config/verticals/electrical";
 import { ValidationError, type FieldErrors } from "@/lib/errors";
 import { attributionSchema } from "@/modules/attribution";
 import { contactSchema } from "./contact";

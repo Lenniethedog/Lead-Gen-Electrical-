@@ -87,7 +87,7 @@ export default async function LeadPage(props: PageProps<"/dashboard/leads/[id]">
       {lead.contact ? (
         <section aria-labelledby="contact-heading" className={`${cardClass} mt-6`}>
           <h2 id="contact-heading" className="text-xl font-bold text-ink">Contact {lead.contact.name}</h2>
-          <p className={hintClass}>They asked to be contacted about this job and agreed to share their details with one local roofing business. Use them only for this enquiry.</p>
+          <p className={hintClass}>They asked to be contacted about this job and agreed to share their details with one local electrical business. Use them only for this enquiry.</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <a href={`tel:${lead.contact.phone}`} className={primaryButton}>Call {lead.contact.phone}</a>
             <a href={mailtoHref(lead.contact.email)} className={secondaryButton}>Email {lead.contact.email}</a>

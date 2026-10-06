@@ -124,7 +124,7 @@ describe("collectRequestSignals", () => {
   it("flags links in the free text", () => {
     expect(codes({ notes: "see http://spam.example for details" })).toContain("url_in_notes");
     expect(codes({ notes: "WWW.spam.example" })).toContain("url_in_notes");
-    expect(codes({ notes: "The roof is leaking above the kitchen" })).not.toContain("url_in_notes");
+    expect(codes({ notes: "The kitchen lights keep tripping the fuse board" })).not.toContain("url_in_notes");
   });
 
   it("treats Tor, foreign countries and unknown countries differently", () => {

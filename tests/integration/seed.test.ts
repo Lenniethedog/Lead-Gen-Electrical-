@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildConsent, buildShareWithOneBusinessConsent } from "../../src/config/consent";
-import { SERVICE_SLUGS, SERVICES, ROOFING } from "../../src/config/verticals/roofing";
+import { SERVICE_SLUGS, SERVICES, ELECTRICAL } from "../../src/config/verticals/electrical";
 import { SOURCE_SLUGS } from "../../src/modules/attribution";
 import { ConsentArchiveMismatchError, ensureConsentText, findActiveConsentText } from "../../src/modules/consent";
 import { DEV_POSTCODES } from "../../db/seeds/dev-postcodes";
@@ -23,7 +23,7 @@ describe("seeded reference data matches the code that depends on it (drift guard
       .selectFrom("service_types as s")
       .innerJoin("verticals as v", "v.id", "s.vertical_id")
       .select(["s.slug", "s.label", "s.active"])
-      .where("v.slug", "=", ROOFING.slug)
+      .where("v.slug", "=", ELECTRICAL.slug)
       .execute();
     expect(rows.map((r) => r.slug).sort()).toEqual([...SERVICE_SLUGS].sort());
     for (const row of rows) {
@@ -38,8 +38,8 @@ describe("seeded reference data matches the code that depends on it (drift guard
   });
 
   it("matches the vertical's duplicate window to the config", async () => {
-    const row = await t.admin.selectFrom("verticals").select("duplicate_window_days").where("slug", "=", ROOFING.slug).executeTakeFirstOrThrow();
-    expect(row.duplicate_window_days).toBe(ROOFING.duplicateWindowDays);
+    const row = await t.admin.selectFrom("verticals").select("duplicate_window_days").where("slug", "=", ELECTRICAL.slug).executeTakeFirstOrThrow();
+    expect(row.duplicate_window_days).toBe(ELECTRICAL.duplicateWindowDays);
   });
 
   it("loads the whole launch footprint and enables it for the vertical", async () => {
@@ -64,16 +64,16 @@ describe("seeded reference data matches the code that depends on it (drift guard
 describe("seeding is idempotent and respects operator decisions", () => {
   it("can run repeatedly without changing the result", async () => {
     const before = await t.admin.selectFrom("service_types").select("id").orderBy("id").execute();
-    const a = await seedReferenceData(t.admin, { brandName: "RoofQuote Local", includeDevPostcodes: true });
-    const b = await seedReferenceData(t.admin, { brandName: "RoofQuote Local", includeDevPostcodes: true });
+    const a = await seedReferenceData(t.admin, { brandName: "SparkQuote Local", includeDevPostcodes: true });
+    const b = await seedReferenceData(t.admin, { brandName: "SparkQuote Local", includeDevPostcodes: true });
     expect(a).toEqual(b);
     expect(await t.admin.selectFrom("service_types").select("id").orderBy("id").execute()).toEqual(before);
   });
 
   it("never re-activates a service an operator switched off", async () => {
-    await t.admin.updateTable("service_types").set({ active: false }).where("slug", "=", "chimney").execute();
-    await seedReferenceData(t.admin, { brandName: "RoofQuote Local", includeDevPostcodes: false });
-    const row = await t.admin.selectFrom("service_types").select("active").where("slug", "=", "chimney").executeTakeFirstOrThrow();
+    await t.admin.updateTable("service_types").set({ active: false }).where("slug", "=", "consumer_unit").execute();
+    await seedReferenceData(t.admin, { brandName: "SparkQuote Local", includeDevPostcodes: false });
+    const row = await t.admin.selectFrom("service_types").select("active").where("slug", "=", "consumer_unit").executeTakeFirstOrThrow();
     expect(row.active).toBe(false);
   });
 });
@@ -87,7 +87,7 @@ describe("consent archive", () => {
     const v1 = await findActiveConsentText(t.admin, "share_with_business");
     expect(v1?.version).toBe("v1");
 
-    const v2 = { ...buildShareWithOneBusinessConsent("RoofQuote Local"), version: "v2", body: "Version two wording that is long enough to be valid." , segments: [] };
+    const v2 = { ...buildShareWithOneBusinessConsent("SparkQuote Local"), version: "v2", body: "Version two wording that is long enough to be valid." , segments: [] };
     await ensureConsentText(t.admin, v2);
 
     expect((await findActiveConsentText(t.admin, "share_with_business"))?.version).toBe("v2");

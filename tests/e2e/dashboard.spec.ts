@@ -48,12 +48,12 @@ test.describe("the business dashboard", () => {
   test("staff invite someone; they sign in with a link, see their lead and the person's details, and signing out ends it", async ({ page, request, baseURL, browser }, testInfo) => {
     const stamp = unique();
     const business = `E2E Dash ${stamp}`;
-    const email = `dash-${stamp}@roofer.example`;
+    const email = `dash-${stamp}@electrician.example`;
 
     await signInAsOwner(page);
     await priceForTestLeads(page);
     await createActiveClient(page, business);
-    await inviteViaAdmin(page, "Dana Roofer", email);
+    await inviteViaAdmin(page, "Dana Electrician", email);
     await expect(page.getByText(email)).toBeVisible();
     await expect(page.getByText("Invited, not signed in yet")).toBeVisible();
     const reference = await assignTo(page, request, baseURL!, business);
@@ -118,8 +118,8 @@ test.describe("the business dashboard", () => {
     const stamp = unique();
     const first = `E2E Dash A ${stamp}`;
     const second = `E2E Dash B ${stamp}`;
-    const firstEmail = `a-${stamp}@roofer.example`;
-    const secondEmail = `b-${stamp}@roofer.example`;
+    const firstEmail = `a-${stamp}@electrician.example`;
+    const secondEmail = `b-${stamp}@electrician.example`;
 
     await signInAsOwner(page);
     await priceForTestLeads(page);
@@ -166,7 +166,7 @@ test.describe("the business dashboard", () => {
   test("a business accepts one lead and records the call, and declines another, which leaves its list", async ({ page, request, baseURL, browser }, testInfo) => {
     const stamp = unique();
     const business = `E2E Answer ${stamp}`;
-    const email = `answer-${stamp}@roofer.example`;
+    const email = `answer-${stamp}@electrician.example`;
     await signInAsOwner(page);
     await priceForTestLeads(page);
     await createActiveClient(page, business);
@@ -194,12 +194,12 @@ test.describe("the business dashboard", () => {
       await expect(problem(me)).toContainText("only for a quote or a job won");
       await me.getByLabel("How did it go?").selectOption("won");
       await me.getByLabel(/Value of the quote/).fill("1,500");
-      await me.getByLabel("Note (optional)").fill("Roof repair, starts Monday");
+      await me.getByLabel("Note (optional)").fill("Fault repair, starts Monday");
       await me.getByRole("button", { name: "Save" }).click();
       await expect(me.getByRole("status").first()).toContainText("Saved");
       await expect(me.getByRole("listitem").filter({ hasText: "Won the job" })).toBeVisible();
       await expect(me.getByRole("listitem").filter({ hasText: "£1,500.00" })).toBeVisible();
-      await expect(me.getByRole("listitem").filter({ hasText: "Roof repair, starts Monday" })).toBeVisible();
+      await expect(me.getByRole("listitem").filter({ hasText: "Fault repair, starts Monday" })).toBeVisible();
       await expectNoViolations(me, "lead after accepting");
 
       // Decline the other one: it leaves New leads and appears in History as Declined, without the person's details.
@@ -228,8 +228,8 @@ test.describe("the business dashboard", () => {
   test("credit: staff switch a business to prepaid and record a payment, leads are charged and refused when it runs out; a manager sees it, an agent does not", async ({ page, request, baseURL, browser }, testInfo) => {
     const stamp = unique();
     const business = `E2E Credit ${stamp}`;
-    const managerEmail = `mgr-${stamp}@roofer.example`;
-    const agentEmail = `agt-${stamp}@roofer.example`;
+    const managerEmail = `mgr-${stamp}@electrician.example`;
+    const agentEmail = `agt-${stamp}@electrician.example`;
     await signInAsOwner(page);
     await priceForTestLeads(page); // £35 for the leads these tests create
     await createActiveClient(page, business);
@@ -294,7 +294,7 @@ test.describe("the business dashboard", () => {
   test("a business reports a problem; staff uphold it; the charge is refunded and the lead leaves the business's list", async ({ page, request, baseURL, browser }, testInfo) => {
     const stamp = unique();
     const business = `E2E Dispute ${stamp}`;
-    const email = `disp-${stamp}@roofer.example`;
+    const email = `disp-${stamp}@electrician.example`;
     await signInAsOwner(page);
     await priceForTestLeads(page);
     await createActiveClient(page, business);
@@ -368,9 +368,9 @@ test.describe("the business dashboard", () => {
   test("settings, areas and performance: roles are respected, a change is requested and handled by staff, the counts are right", async ({ page, request, baseURL, browser }, testInfo) => {
     const stamp = unique();
     const business = `E2E Account ${stamp}`;
-    const ownerEmail = `own-${stamp}@roofer.example`;
-    const managerEmail = `mgr-${stamp}@roofer.example`;
-    const agentEmail = `agt-${stamp}@roofer.example`;
+    const ownerEmail = `own-${stamp}@electrician.example`;
+    const managerEmail = `mgr-${stamp}@electrician.example`;
+    const agentEmail = `agt-${stamp}@electrician.example`;
     await signInAsOwner(page);
     await priceForTestLeads(page);
     await createActiveClient(page, business);
@@ -407,16 +407,16 @@ test.describe("the business dashboard", () => {
 
       // Settings: the owner changes where leads go.
       await me.getByRole("link", { name: "Settings" }).click();
-      await me.getByLabel("Email address for leads").fill(`new-${stamp}@roofer.example`);
+      await me.getByLabel("Email address for leads").fill(`new-${stamp}@electrician.example`);
       await me.getByRole("button", { name: "Save" }).click();
       await expect(me.getByRole("status").first()).toContainText("Saved");
-      await expect(me.getByLabel("Email address for leads")).toHaveValue(`new-${stamp}@roofer.example`);
+      await expect(me.getByLabel("Email address for leads")).toHaveValue(`new-${stamp}@electrician.example`);
       await expectNoViolations(me, "settings");
 
       // Areas: read-only, in words, with a way to ask.
       await me.getByRole("link", { name: "Areas" }).click();
       await expect(me.getByText("Postcode district BR6")).toBeVisible();
-      await expect(me.getByText("Roof repair or leak")).toBeVisible();
+      await expect(me.getByText("Electrical fault or repair")).toBeVisible();
       await me.getByLabel("What would you like changed").selectOption("coverage");
       await me.getByLabel("Tell us what you would like").fill("Please add BR1 and BR2");
       await me.getByRole("button", { name: "Send request" }).click();

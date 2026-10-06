@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { TileGroup, type TileOption } from "@/components/ui/TileGroup";
-import { SERVICE_SLUGS, SERVICES, type ServiceSlug } from "@/config/verticals/roofing";
+import { SERVICE_SLUGS, SERVICES, type ServiceSlug } from "@/config/verticals/electrical";
 import { StepShell } from "../StepShell";
 import type { StepProps } from "./types";
 
@@ -20,7 +20,7 @@ export function ServiceStep({ values, fieldErrors, headingRef, onPatch, onChoose
     <StepShell
       headingId="step-heading"
       headingRef={headingRef}
-      title="What roofing work do you need?"
+      title="What electrical work do you need?"
       intro="Choose an option to continue."
       onContinue={() => {
         if (values.service === null) return setError("Choose the work you need");

@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createAdminAuthorizer } from "./admin-auth";
 import { ACCESS_JWT_HEADER, createAccessVerifier } from "./cf-access";
 
-const TEAM = "kentroofmatch.cloudflareaccess.com";
+const TEAM = "kentsparkmatch.cloudflareaccess.com";
 const AUD = "a".repeat(64);
 
 type Keys = Awaited<ReturnType<typeof generateKeyPair>>;
@@ -35,7 +35,7 @@ interface TokenOptions {
 
 async function token(options: TokenOptions = {}): Promise<string> {
   const signer = options.signer ?? primary;
-  const jwt = new SignJWT({ email: "Owner@KentRoofMatch.co.uk", type: "app", ...options.claims })
+  const jwt = new SignJWT({ email: "Owner@KentSparkMatch.co.uk", type: "app", ...options.claims })
     .setProtectedHeader({ alg: "RS256", kid: signer.kid })
     .setIssuer(options.issuer ?? `https://${TEAM}`)
     .setAudience(options.audience ?? AUD)
@@ -52,7 +52,7 @@ const verifier = () => createAccessVerifier({ teamDomain: TEAM, audience: AUD },
 
 describe("a valid Cloudflare Access token", () => {
   it("is accepted and yields the lowercased email and subject", async () => {
-    expect(await verifier()(await token())).toEqual({ ok: true, email: "owner@kentroofmatch.co.uk", subject: "user-123" });
+    expect(await verifier()(await token())).toEqual({ ok: true, email: "owner@kentsparkmatch.co.uk", subject: "user-123" });
   });
 
   it("is accepted when the audience claim is a list that includes ours", async () => {
@@ -120,7 +120,7 @@ describe("tokens that must be refused (each is a way into the inbox if the check
   });
 
   it('an unsigned token (alg: "none")', async () => {
-    const forged = `${b64url({ alg: "none", typ: "JWT" })}.${b64url({ email: "owner@kentroofmatch.co.uk", iss: `https://${TEAM}`, aud: AUD, sub: "x", exp: Math.floor(Date.now() / 1000) + 3_600 })}.`;
+    const forged = `${b64url({ alg: "none", typ: "JWT" })}.${b64url({ email: "owner@kentsparkmatch.co.uk", iss: `https://${TEAM}`, aud: AUD, sub: "x", exp: Math.floor(Date.now() / 1000) + 3_600 })}.`;
     expect((await refused(forged)).ok).toBe(false);
   });
 
@@ -129,7 +129,7 @@ describe("tokens that must be refused (each is a way into the inbox if the check
     const { exportSPKI } = await import("jose");
     const publicPem = await exportSPKI(primary.publicKey);
     const head = b64url({ alg: "HS256", typ: "JWT", kid: primary.kid });
-    const body = b64url({ email: "owner@kentroofmatch.co.uk", iss: `https://${TEAM}`, aud: AUD, sub: "x", exp: Math.floor(Date.now() / 1000) + 3_600 });
+    const body = b64url({ email: "owner@kentsparkmatch.co.uk", iss: `https://${TEAM}`, aud: AUD, sub: "x", exp: Math.floor(Date.now() / 1000) + 3_600 });
     const signature = createHmac("sha256", publicPem).update(`${head}.${body}`).digest("base64url");
     expect((await refused(`${head}.${body}.${signature}`)).reason).toBe("bad_algorithm");
   });
@@ -215,18 +215,18 @@ describe("createAdminAuthorizer (who may use the inbox)", () => {
     createAdminAuthorizer({
       accessConfigured: true,
       verify: verifier(),
-      allowedEmails: ["Owner@KentRoofMatch.co.uk"],
+      allowedEmails: ["Owner@KentSparkMatch.co.uk"],
       allowDevBypass: false,
       ...overrides,
     });
 
   it("admits a valid token whose email is on the allowlist (case-insensitive), as ordinary staff", async () => {
-    expect(await authorizer()(headersWith(await token()))).toEqual({ ok: true, email: "owner@kentroofmatch.co.uk", via: "access", role: "staff" });
+    expect(await authorizer()(headersWith(await token()))).toEqual({ ok: true, email: "owner@kentsparkmatch.co.uk", via: "access", role: "staff" });
   });
 
   it("makes an owner an owner, and admits owners even if they are not also on the staff list", async () => {
-    const owner = authorizer({ allowedEmails: ["someone.else@example.com"], ownerEmails: ["OWNER@kentroofmatch.co.uk"] });
-    expect(await owner(headersWith(await token()))).toEqual({ ok: true, email: "owner@kentroofmatch.co.uk", via: "access", role: "owner" });
+    const owner = authorizer({ allowedEmails: ["someone.else@example.com"], ownerEmails: ["OWNER@kentsparkmatch.co.uk"] });
+    expect(await owner(headersWith(await token()))).toEqual({ ok: true, email: "owner@kentsparkmatch.co.uk", via: "access", role: "owner" });
     // Ordinary staff never become owners by accident.
     const staff = await token({ claims: { email: "someone.else@example.com" } });
     expect(await owner(headersWith(staff))).toMatchObject({ ok: true, role: "staff" });

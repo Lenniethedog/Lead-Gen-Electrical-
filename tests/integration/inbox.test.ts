@@ -308,7 +308,7 @@ describe("lead detail", () => {
       status: "new",
       postcode: "BR6 0AA",
       postcodeOutward: "BR6",
-      scope: "leak",
+      scope: "no_power",
       contact: { name: "Raw Fixture", phone: "+447911100999", email: "raw@example.com", notes: null },
     });
     expect(detail.consent?.version).toMatch(/^v\d+$/);

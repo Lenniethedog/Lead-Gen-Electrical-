@@ -1,6 +1,6 @@
 # Local PostgreSQL for development and tests.
 #   docker compose up -d db
-# Matches the default URLs in .env.example (port 54329).
+# Matches the default URLs in .env.example (port 54349).
 # No Docker? `npm run db:local` starts an isolated cluster using Homebrew/apt Postgres binaries instead.
 services:
   db:
@@ -9,16 +9,16 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_HOST_AUTH_METHOD: trust # local development only
-      POSTGRES_DB: leadgen_dev
+      POSTGRES_DB: electrical_dev
     ports:
-      - "127.0.0.1:54329:5432"
+      - "127.0.0.1:54349:5432"
     volumes:
-      - leadgen_pgdata:/var/lib/postgresql/data
+      - electrical_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d leadgen_dev"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d electrical_dev"]
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  leadgen_pgdata:
+  electrical_pgdata:

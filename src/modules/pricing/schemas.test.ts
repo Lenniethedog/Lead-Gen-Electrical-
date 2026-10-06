@@ -23,9 +23,9 @@ describe("parsePricingRule", () => {
       ok: true,
       value: { serviceSlug: null, serviceAreaSlug: null, urgency: null, saleType: "exclusive", pricePence: 3500 },
     });
-    expect(parsePricingRule({ serviceSlug: "roof_repair", serviceAreaSlug: "orpington", urgency: "emergency", saleType: "shared", price: "£60.00" })).toMatchObject({
+    expect(parsePricingRule({ serviceSlug: "fault_repair", serviceAreaSlug: "orpington", urgency: "emergency", saleType: "shared", price: "£60.00" })).toMatchObject({
       ok: true,
-      value: { serviceSlug: "roof_repair", serviceAreaSlug: "orpington", urgency: "emergency", saleType: "shared", pricePence: 6000 },
+      value: { serviceSlug: "fault_repair", serviceAreaSlug: "orpington", urgency: "emergency", saleType: "shared", pricePence: 6000 },
     });
   });
 

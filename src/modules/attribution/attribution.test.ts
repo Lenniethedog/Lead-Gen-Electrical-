@@ -45,10 +45,10 @@ describe("attributionSchema", () => {
       utmMedium: "cpc",
       utmCampaign: "21098765432",
       gclid: "EAIaIQobChMI",
-      landingPath: "/roof-repair",
+      landingPath: "/electrician-fault-repair",
       referrerHost: "www.google.com",
     });
-    expect(parsed).toMatchObject({ utmSource: "google", landingPath: "/roof-repair", referrerHost: "www.google.com" });
+    expect(parsed).toMatchObject({ utmSource: "google", landingPath: "/electrician-fault-repair", referrerHost: "www.google.com" });
   });
 
   it("strips control characters and truncates long values instead of rejecting", () => {
@@ -64,7 +64,7 @@ describe("attributionSchema", () => {
   });
 
   it("accepts only a plain hostname as the referrer", () => {
-    expect(attributionSchema.parse({ referrerHost: "https://www.google.com/search?q=roofer" }).referrerHost).toBeUndefined();
+    expect(attributionSchema.parse({ referrerHost: "https://www.google.com/search?q=electrician" }).referrerHost).toBeUndefined();
     expect(attributionSchema.parse({ referrerHost: "Sub.Example.CO.UK" }).referrerHost).toBe("sub.example.co.uk");
   });
 

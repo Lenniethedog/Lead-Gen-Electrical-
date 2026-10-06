@@ -29,11 +29,11 @@ type Json = Record<string, unknown>;
 /** The raw JSON a browser would POST. Override any part with a deep-merge. */
 export function wirePayload(overrides: Json = {}, n = 1): Json {
   const base: Json = {
-    service: "roof_repair",
+    service: "fault_repair",
     postcode: "BR6 0AA",
     propertyType: "house",
     ownership: "owner",
-    scope: "leak",
+    scope: "no_power",
     urgency: "within_2_weeks",
     contact: {
       name: "Alex Example",
@@ -104,7 +104,7 @@ export function buildLeadService(db: Database, challenge: ChallengeVerifier = ne
     reference: createReferenceDataProvider(db, { ttlMs: 0 }),
     challenge,
     logger: silentLogger,
-    verticalSlug: "roofing",
+    verticalSlug: "electrical",
     ownHost: "localhost",
   });
 }

@@ -98,22 +98,22 @@ At any plausible cost per lead, **ad spend dwarfs infrastructure by one to two o
 
 ## 12. Biggest commercial risks
 
-1. **Unit economics:** cost per *good* lead vs what a roofer will pay. Roofing is typically among the more expensive trades for clicks; model `cost per click / form conversion rate / valid-lead rate` against the price a client will actually pay for a lead they judge good, with a pessimistic case. Validate at Gate A before building more.
+1. **Unit economics:** cost per *good* lead vs what a electrician will pay. Electrical work is typically among the more expensive trades for clicks; model `cost per click / form conversion rate / valid-lead rate` against the price a client will actually pay for a lead they judge good, with a pessimistic case. Validate at Gate A before building more.
 2. **Lead quality perception and disputes:** "tyre-kickers", tenants, outdated numbers. *Mitigation:* the qualification questions, exclusivity, outcome tracking, a clear dispute policy.
-3. **Supply before demand:** buying traffic in postcodes where no paying roofer exists. *Mitigation:* the footprint is the set of districts with clients; ad geo-targeting mirrors it.
-4. **Client concentration and churn:** a few roofers can be most of the revenue. *Mitigation:* client ROI reporting, outcome feedback, SLA on speed.
+3. **Supply before demand:** buying traffic in postcodes where no paying electrician exists. *Mitigation:* the footprint is the set of districts with clients; ad geo-targeting mirrors it.
+4. **Client concentration and churn:** a few electrical businesses can be most of the revenue. *Mitigation:* client ROI reporting, outcome feedback, SLA on speed.
 5. **Ad-platform policy and dependence:** you must be clearly an introduction service (the landing page and ad copy say so); one-channel dependence on Google. *Mitigation:* diversify later; keep claims substantiated.
 6. **Regulatory and reputational exposure:** lead generation and third-party sharing are an enforcement focus; consumer-protection law (fake reviews, drip pricing, unsubstantiated "vetted/insured" claims) and rogue-trader reputation. *Mitigation:* consent design, no unsubstantiated claims, client onboarding checks **[LEGAL]**.
-7. **Speed-to-lead depends on the roofer, not you:** a fast delivery to a slow contractor still loses the job. *Mitigation:* acknowledge/response-time tracking, re-routing for premium exclusives, client coaching.
+7. **Speed-to-lead depends on the electrician, not you:** a fast delivery to a slow contractor still loses the job. *Mitigation:* acknowledge/response-time tracking, re-routing for premium exclusives, client coaching.
 
 ## 13. What I would change about the concept
 
-1. **Sell leads by hand to 3-5 roofers before building the marketplace** (stages 1-3). The hard questions are commercial; the routing engine is not what decides the business.
+1. **Sell leads by hand to 3-5 electrical businesses before building the marketplace** (stages 1-3). The hard questions are commercial; the routing engine is not what decides the business.
 2. **Exclusive first, shared later**, and only on consented wording.
 3. **Prepaid credit before subscriptions**, Stripe only after manual invoicing hurts.
 4. **SMS + email + webhook before WhatsApp** (paperwork, approval and per-message cost; add on demand).
 5. **Align advertising to client coverage** and optimise ad platforms on *sold leads* (offline conversions), not form fills.
-6. **Treat the roofer's response speed as part of the product:** acknowledgement tracking and automatic re-routing for premium leads.
+6. **Treat the electrician's response speed as part of the product:** acknowledgement tracking and automatic re-routing for premium leads.
 7. **Consider call tracking** (Twilio numbers on call-only ads): for trades, inbound calls are often a larger and higher-intent source than forms.
 8. **Invest in outcome data from day one** (won/lost, job value): it is what lets you price leads, prove client ROI and improve targeting.
 
@@ -122,9 +122,9 @@ At any plausible cost per lead, **ad spend dwarfs infrastructure by one to two o
 **Stages 1 and 2, run manually:**
 
 - One Railway project: **web** (landing page + API), **worker** (alerts, reconciler), **Postgres**; Cloudflare in front with Turnstile; Sentry free; an uptime check; nightly dumps to R2.
-- An operator email per lead, a protected inbox to see new/held leads, and **you** forwarding good leads to the first roofers by WhatsApp, logging outcomes by hand.
+- An operator email per lead, a protected inbox to see new/held leads, and **you** forwarding good leads to the first electrical businesses by WhatsApp, logging outcomes by hand.
 - Nothing else: no client logins, no routing engine, no billing, no dashboards.
 
 Stages 1 and 2 of this plan are **built and verified locally**. Stage 2's code is done; what stands between it and a live system is yours to provide: confirmation (or correction) of the niche and footprint; the company and brand
-details for the footer and consent wording; a solicitor engaged for the legal review; an email provider account (the adapter is written for Resend) and a verified sending domain; the Railway and Cloudflare accounts (including a Cloudflare Access application for the admin host); a domain; a Sentry project; an uptime monitor; and the names of the first two or three roofers.
+details for the footer and consent wording; a solicitor engaged for the legal review; an email provider account (the adapter is written for Resend) and a verified sending domain; the Railway and Cloudflare accounts (including a Cloudflare Access application for the admin host); a domain; a Sentry project; an uptime monitor; and the names of the first two or three electrical businesses.
 `docs/runbook.md` is the step-by-step for all of it, including how to confirm each piece works before a real lead depends on it.
