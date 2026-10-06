@@ -67,7 +67,7 @@ export function RoutingPreferences({ clientId, prefs, hours, pauses }: Props) {
             <span className={`block ${hintClass}`}>Unticked, the business can be sent a lead at any time. Ticked, leave a day empty to be closed on it.</span>
           </span>
         </label>
-        <div className="overflow-x-auto rounded-lg border border-stone-200">
+        <div className="relative overflow-x-auto rounded-lg border border-stone-200">
           <table className="w-full min-w-[26rem] text-left">
             <caption className="sr-only">Opening and closing time for each day</caption>
             <thead className="border-b border-stone-200 bg-stone-100 text-sm text-muted">

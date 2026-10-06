@@ -72,7 +72,7 @@ export default async function CoveragePage(props: PageProps<"/admin/coverage">) 
                 {clients.length === 0 ? (
                   <p className={`${cardClass} mt-3 text-muted`}>There are no clients yet.</p>
                 ) : (
-                  <div className="mt-3 overflow-x-auto rounded-lg border border-stone-200 bg-white">
+                  <div className="relative mt-3 overflow-x-auto rounded-lg border border-stone-200 bg-white">
                     <table className="w-full min-w-[44rem] text-left">
                       <caption className="sr-only">Eligibility of each client</caption>
                       <thead className="border-b border-stone-200 bg-stone-100 text-sm text-muted">

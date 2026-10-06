@@ -73,7 +73,7 @@ export default async function PricingPage(props: PageProps<"/admin/pricing">) {
         {current.length === 0 ? (
           <p className={`${cardClass} mt-2 text-muted`}>No prices set. Until one is, you will be asked for a price each time you hand a lead to a business.</p>
         ) : (
-          <div className="mt-2 overflow-x-auto rounded-lg border border-stone-200 bg-white">
+          <div className="relative mt-2 overflow-x-auto rounded-lg border border-stone-200 bg-white">
             <table className="w-full min-w-[40rem] text-left">
               <caption className="sr-only">Current pricing rules</caption>
               <thead className="border-b border-stone-200 bg-stone-100 text-sm text-muted">

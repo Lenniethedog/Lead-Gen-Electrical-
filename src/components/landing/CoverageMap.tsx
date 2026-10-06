@@ -38,7 +38,7 @@ export function CoverageMap({ launchRegion }: { launchRegion: string }) {
               tabIndex={0}
               role="region"
               aria-label="Map of the areas we cover. On a small screen, swipe sideways to see all of it."
-              className="overflow-x-auto focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-brand-300"
+              className="relative overflow-x-auto focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-brand-300"
             >
               <div className="relative min-w-[720px]">
                 <Image src="/images/coverage-map.webp" alt="" width={width} height={height} sizes="(min-width: 1024px) 800px, 720px" className="block h-auto w-full" />

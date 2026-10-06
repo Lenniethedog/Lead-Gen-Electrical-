@@ -35,7 +35,7 @@ export function RoutingVerdicts({ detail, caption }: { detail: RunDetail; captio
       </p>
       {rows.length > 0 && (
         // Scrolls sideways on a phone and holds nothing focusable, so a keyboard user needs to be able to reach it to scroll it.
-        <div className="overflow-x-auto rounded-lg border border-stone-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300" tabIndex={0} role="region" aria-label={caption}>
+        <div className="relative overflow-x-auto rounded-lg border border-stone-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300" tabIndex={0} role="region" aria-label={caption}>
           <table className="w-full min-w-[34rem] text-left text-sm">
             <caption className="sr-only">{caption}</caption>
             <thead className="border-b border-stone-200 bg-stone-100 text-muted">

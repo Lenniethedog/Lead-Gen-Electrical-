@@ -61,7 +61,7 @@ export function BillingPanel({ clientId, billing }: { clientId: string; billing:
 
       <h3 className="mt-6 text-lg font-bold text-ink">Credit ledger</h3>
       {billing.ledger.length === 0 ? <p className="mt-1">Nothing yet.</p> : (
-        <div tabIndex={0} role="region" aria-label="Credit ledger" className="mt-2 overflow-x-auto rounded-lg border border-stone-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
+        <div tabIndex={0} role="region" aria-label="Credit ledger" className="relative mt-2 overflow-x-auto rounded-lg border border-stone-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
           <table className="w-full min-w-[40rem] text-left text-sm">
             <caption className="sr-only">Credit ledger, newest first</caption>
             <thead className="bg-stone-100 text-muted"><tr><th scope="col" className="px-3 py-2">When</th><th scope="col" className="px-3 py-2">What</th><th scope="col" className="px-3 py-2">Lead</th><th scope="col" className="px-3 py-2 text-right">Amount</th><th scope="col" className="px-3 py-2 text-right">Balance</th><th scope="col" className="px-3 py-2">By</th></tr></thead>
@@ -83,7 +83,7 @@ export function BillingPanel({ clientId, billing }: { clientId: string; billing:
 
       <h3 className="mt-6 text-lg font-bold text-ink">Charges (to invoice from)</h3>
       {billing.charges.length === 0 ? <p className="mt-1">No leads have been charged yet.</p> : (
-        <div tabIndex={0} role="region" aria-label="Lead charges" className="mt-2 overflow-x-auto rounded-lg border border-stone-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
+        <div tabIndex={0} role="region" aria-label="Lead charges" className="relative mt-2 overflow-x-auto rounded-lg border border-stone-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
           <table className="w-full min-w-[32rem] text-left text-sm">
             <caption className="sr-only">Lead charges, newest first</caption>
             <thead className="bg-stone-100 text-muted"><tr><th scope="col" className="px-3 py-2">When</th><th scope="col" className="px-3 py-2">Lead</th><th scope="col" className="px-3 py-2 text-right">Amount</th><th scope="col" className="px-3 py-2">Paid from</th><th scope="col" className="px-3 py-2">State</th></tr></thead>

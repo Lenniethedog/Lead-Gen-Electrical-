@@ -110,3 +110,15 @@ export async function assignTo(page: Page, request: Parameters<typeof createLead
   return reference;
 }
 
+
+/**
+ * A page must never be wider than the screen it is shown on. Measured against the DEVICE's width, not `innerWidth`: when a page overflows, a phone
+ * widens its layout viewport and zooms out, so `innerWidth` would grow with the page and hide the problem. (A hidden "Actions" table heading
+ * once did exactly that: sr-only text is absolutely positioned and escaped an unpositioned scroll wrapper.)
+ */
+export async function expectFitsScreen(page: Page, label: string) {
+  const device = page.viewportSize()?.width;
+  if (device === undefined) throw new Error("the page has no viewport size");
+  const widths = await page.evaluate(() => ({ document: document.documentElement.scrollWidth, body: document.body.scrollWidth }));
+  expect(widths.document, `${label}: the page is wider than the ${device}px screen (document ${widths.document}px, body ${widths.body}px)`).toBeLessThanOrEqual(device);
+}

@@ -46,7 +46,7 @@ export default async function DeliveriesPage(props: PageProps<"/admin/deliveries
       {problems.length === 0 ? (
         <p className="mt-8 rounded-lg border border-stone-200 bg-white px-4 py-8 text-center text-muted">Nothing needs doing: every delivery went through.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-stone-200 bg-white">
+        <div className="relative mt-4 overflow-x-auto rounded-lg border border-stone-200 bg-white">
           <table className="w-full min-w-[46rem] text-left">
             <caption className="sr-only">Failed deliveries, newest first</caption>
             <thead className="border-b border-stone-200 bg-stone-100 text-sm text-muted">

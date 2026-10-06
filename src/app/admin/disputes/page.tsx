@@ -78,7 +78,7 @@ export default async function DisputesPage(props: PageProps<"/admin/disputes">) 
 
       <h2 className="mt-8 text-xl font-bold text-ink">Recently decided</h2>
       {decided.length === 0 ? <p className="mt-2 text-muted">None yet.</p> : (
-        <div tabIndex={0} role="region" aria-label="Recently decided disputes" className="mt-3 overflow-x-auto rounded-lg border border-stone-200 bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
+        <div tabIndex={0} role="region" aria-label="Recently decided disputes" className="relative mt-3 overflow-x-auto rounded-lg border border-stone-200 bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-300">
           <table className="w-full min-w-[40rem] text-left text-sm">
             <caption className="sr-only">Recently decided disputes, newest first</caption>
             <thead className="bg-stone-100 text-muted"><tr><th scope="col" className="px-3 py-2">Decided</th><th scope="col" className="px-3 py-2">Business</th><th scope="col" className="px-3 py-2">Lead</th><th scope="col" className="px-3 py-2">Problem</th><th scope="col" className="px-3 py-2">Outcome</th><th scope="col" className="px-3 py-2">By</th></tr></thead>

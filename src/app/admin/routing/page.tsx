@@ -174,7 +174,7 @@ export default async function RoutingPage(props: PageProps<"/admin/routing">) {
         {runs.length === 0 ? (
           <p className={`${cardClass} mt-2 text-muted`}>Nothing has been routed yet.</p>
         ) : (
-          <div className="mt-2 overflow-x-auto rounded-lg border border-stone-200 bg-white">
+          <div className="relative mt-2 overflow-x-auto rounded-lg border border-stone-200 bg-white">
             <table className="w-full min-w-[44rem] text-left">
               <caption className="sr-only">Recent routing decisions, newest first</caption>
               <thead className="border-b border-stone-200 bg-stone-100 text-sm text-muted">

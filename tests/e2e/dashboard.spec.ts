@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { createLead, signInAsOwner } from "./api";
-import { assignTo, createActiveClient, expectNoViolations, priceForTestLeads, problem, unique } from "./flows";
+import { assignTo, createActiveClient, expectFitsScreen, expectNoViolations, priceForTestLeads, problem, unique } from "./flows";
 import { uniquePerson, withDb } from "./helpers";
 
 /**
@@ -280,6 +280,7 @@ test.describe("the business dashboard", () => {
       await expect(manager.page.getByText("£70.00").first()).toBeVisible();
       await expect(manager.page.getByRole("heading", { name: "Credit history" })).toBeVisible();
       await expectNoViolations(manager.page, "business billing");
+      if (testInfo.project.name === "mobile") await expectFitsScreen(manager.page, "business billing");
 
       await signInThroughPage(agent.page, await plantLink(agentEmail));
       await expect(agent.page.getByRole("link", { name: "Billing" })).toHaveCount(0);

@@ -65,7 +65,7 @@ export default async function LeadsPage(props: PageProps<"/admin/leads">) {
           {view === "open" ? "Nothing needs action right now." : "Nothing here yet."}
         </p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-stone-200 bg-white">
+        <div className="relative mt-4 overflow-x-auto rounded-lg border border-stone-200 bg-white">
           <table className="w-full min-w-[46rem] text-left">
             <caption className="sr-only">{VIEW_LABEL[view]} leads</caption>
             <thead className="border-b border-stone-200 bg-stone-100 text-sm text-muted">

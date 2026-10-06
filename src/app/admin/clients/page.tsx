@@ -35,7 +35,7 @@ export default async function ClientsPage(props: PageProps<"/admin/clients">) {
       {clients.length === 0 ? (
         <p className={`${cardClass} mt-6 text-center text-muted`}>No clients yet. Add the first business you will send leads to.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-lg border border-stone-200 bg-white">
+        <div className="relative mt-4 overflow-x-auto rounded-lg border border-stone-200 bg-white">
           <table className="w-full min-w-[40rem] text-left">
             <caption className="sr-only">Clients</caption>
             <thead className="border-b border-stone-200 bg-stone-100 text-sm text-muted">
