@@ -235,11 +235,16 @@ export async function findDuplicate(
 
 /**
  * Serialises concurrent submissions from the same person for the rest of the transaction, so two
- * simultaneous requests cannot both conclude "not a duplicate". The lock is released at COMMIT or
- * ROLLBACK. Different people never contend (the key is the phone number).
+ * simultaneous requests cannot both conclude "not a duplicate". Duplicate detection matches phone
+ * OR email, so both identifiers are locked. They are taken in sorted order: otherwise one
+ * transaction can lock the phone while the other locks the email and the two deadlock.
+ * The locks are released at COMMIT or ROLLBACK. Different people never contend.
  */
-export async function lockIdentity(db: Database, identityKey: string): Promise<void> {
-  await sql`select pg_advisory_xact_lock(hashtextextended(${`lead-identity:${identityKey}`}, 0))`.execute(db);
+export async function lockIdentity(db: Database, phoneE164: string, emailNormalised: string): Promise<void> {
+  const keys = [...new Set([`lead-identity:email:${emailNormalised}`, `lead-identity:phone:${phoneE164}`])].sort();
+  for (const key of keys) {
+    await sql`select pg_advisory_xact_lock(hashtext(${key}))`.execute(db);
+  }
 }
 
 /**

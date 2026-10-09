@@ -22,6 +22,15 @@ export interface ChallengeVerifier {
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
+/** Runtime check: Cloudflare's body is an object. `null` is typeof "object" in JavaScript and must be rejected. */
+function turnstileBody(value: unknown): { success: boolean; errorCodes: string[] } | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  const rawCodes = record["error-codes"];
+  const errorCodes = Array.isArray(rawCodes) ? rawCodes.filter((code): code is string => typeof code === "string") : [];
+  return { success: record.success === true, errorCodes };
+}
+
 /** Error codes that mean the TOKEN is bad (client may retry with a fresh one). */
 const TOKEN_ERRORS = new Set(["invalid-input-response", "timeout-or-duplicate", "missing-input-response"]);
 
@@ -54,16 +63,20 @@ export function createTurnstileVerifier(options: TurnstileOptions): ChallengeVer
       }
       if (!response.ok) return { status: "unavailable", reason: `http_${response.status}` };
 
-      let payload: { success?: boolean; "error-codes"?: string[] };
+      let parsed: unknown;
       try {
-        payload = (await response.json()) as typeof payload;
+        parsed = await response.json();
       } catch {
         return { status: "unavailable", reason: "invalid_response" };
       }
+      // A 200 body of JSON `null` (or an array, or a string) is not the documented object.
+      // Reading `.success` off it throws and would fail the lead capture instead of failing open.
+      const payload = turnstileBody(parsed);
+      if (!payload) return { status: "unavailable", reason: "invalid_response" };
 
       if (payload.success === true) return { status: "passed" };
 
-      const codes = payload["error-codes"] ?? [];
+      const codes = payload.errorCodes;
       // Anything that is not clearly "this token is bad" is our configuration or their outage.
       if (codes.length === 0 || !codes.every((code) => TOKEN_ERRORS.has(code))) {
         return { status: "unavailable", reason: codes.join(",") || "unknown_error" };

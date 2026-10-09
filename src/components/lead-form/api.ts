@@ -94,10 +94,17 @@ async function attemptOnce(
     });
 
     if (response.ok) {
-      const body = (await response.json()) as { data?: { reference?: unknown } };
-      return typeof body.data?.reference === "string"
-        ? { kind: "success", reference: body.data.reference }
-        : { kind: "fatal", error: new ApiError(502, "invalid_response", "Unexpected response.") };
+      let body: { data?: { reference?: unknown } } | null = null;
+      try {
+        const parsed: unknown = await response.json();
+        body = parsed !== null && typeof parsed === "object" ? (parsed as { data?: { reference?: unknown } }) : null;
+      } catch {
+        body = null;
+      }
+      if (typeof body?.data?.reference === "string") return { kind: "success", reference: body.data.reference };
+      // 2xx whose reference was stripped (truncated body, JSON null) is ambiguous: the lead may exist.
+      // Retry with the SAME idempotency key so the server returns the original lead instead of a second one.
+      return { kind: "retryable", error: new ApiError(502, "invalid_response", "Unexpected response.") };
     }
 
     const error = await parseError(response);

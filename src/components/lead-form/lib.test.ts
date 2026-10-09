@@ -77,9 +77,18 @@ describe("submitLead", () => {
     expect(long).toHaveBeenCalledTimes(1);
   });
 
-  it("treats a 2xx without a reference as a failure, not a success", async () => {
-    const fetchImpl = vi.fn(async () => json({ data: {} }));
-    await expect(submitLead(payload, "k", { fetchImpl, ...noSleep })).rejects.toMatchObject({ code: "invalid_response" });
+  it("retries a 2xx that lost its reference, using the same idempotency key", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(json({ data: {} }))
+      .mockResolvedValueOnce(json(null))
+      .mockResolvedValueOnce(json({ data: { reference: "L-AAAAA-BBBBB" } }));
+    const result = await submitLead(payload, "same-key", { fetchImpl, ...noSleep });
+    expect(result.reference).toBe("L-AAAAA-BBBBB");
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    for (const call of fetchImpl.mock.calls) {
+      expect((call[1] as RequestInit).headers).toMatchObject({ "idempotency-key": "same-key" });
+    }
   });
 
   it("aborts a hung request after the timeout and retries", async () => {

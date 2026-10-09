@@ -210,6 +210,9 @@ describe("createTurnstileVerifier", () => {
 
     const garbage = await verifier(vi.fn(async () => new Response("<html>", { status: 200 }))).verify(input);
     expect(garbage).toEqual({ status: "unavailable", reason: "invalid_response" });
+
+    const jsonNull = await verifier(vi.fn(async () => new Response("null", { status: 200, headers: { "content-type": "application/json" } }))).verify(input);
+    expect(jsonNull).toEqual({ status: "unavailable", reason: "invalid_response" });
   });
 
   it("times out instead of hanging a lead submission on a slow Cloudflare", async () => {

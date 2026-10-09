@@ -75,7 +75,12 @@ export function createResendSender(options: ResendSenderOptions): EmailSender {
 
       if (response.status >= 200 && response.status < 300) {
         const id = field("id");
-        return { outcome: "accepted", ...(typeof id === "string" && { providerMessageId: id.slice(0, 200) }) };
+        // A success status with no provider id is ambiguous (the body was dropped). Do not record it as
+        // accepted and do not give up: the caller retries under the same persisted idempotency key.
+        if (typeof id !== "string" || id.length === 0) {
+          return { outcome: "retryable_failure", errorCode: "missing_provider_id", httpStatus: response.status };
+        }
+        return { outcome: "accepted", providerMessageId: id.slice(0, 200) };
       }
 
       const httpStatus = response.status;

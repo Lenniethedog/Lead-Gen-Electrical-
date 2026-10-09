@@ -55,10 +55,9 @@ type Disposition = "sent" | "retrying" | "failed" | "cancelled" | "lost" | "erro
 
 const safeCode = (code: string): string => code.toLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 60) || "unknown";
 
-/** Stable per notification so a retry after "accepted but we never heard" gets the original answer; rotated only on the provider's payload-mismatch 409 (as for alerts). */
+/** The key lives on the row. It starts as `delivery-<id>` and changes only when a payload mismatch stores a replacement. A later timeout must not fall back to a key the provider already rejected. */
 function idempotencyKeyFor(notification: ClaimedNotification): string {
-  const base = `delivery-${notification.id}`;
-  return notification.lastErrorCode === IDEMPOTENCY_MISMATCH_CODE ? `${base}-r${notification.attemptNo}` : base;
+  return notification.providerIdempotencyKey ?? `delivery-${notification.id}`;
 }
 
 export function createDeliveryService(deps: DeliveryServiceDeps) {
@@ -135,11 +134,11 @@ export function createDeliveryService(deps: DeliveryServiceDeps) {
     if (!loaded.ok) {
       const leadId = loaded.leadId ?? (await leadIdOfAssignment(db, notification.assignmentId));
       if (!leadId) {
-        await markFailed(db, { id: notification.id, attemptNo: notification.attemptNo, errorCode: "assignment_missing", retryInMs: null, permanent: true });
+        await markFailed(db, { id: notification.id, attemptNo: notification.attemptNo, leaseGeneration: notification.leaseGeneration, errorCode: "assignment_missing", retryInMs: null, permanent: true });
         return "failed";
       }
       // The assignment ended, the lead was erased or consent was withdrawn since this was queued: it must not go out. Not a failure.
-      const done = await complete(notification, leadId, (trx) => markCancelled(trx, { id: notification.id, attemptNo: notification.attemptNo, reason: loaded.reason }));
+      const done = await complete(notification, leadId, (trx) => markCancelled(trx, { id: notification.id, attemptNo: notification.attemptNo, leaseGeneration: notification.leaseGeneration, reason: loaded.reason }));
       logger.info({ notificationId: notification.id, reason: loaded.reason }, "notification cancelled before sending");
       return done ? "cancelled" : "lost";
     }
@@ -159,7 +158,7 @@ export function createDeliveryService(deps: DeliveryServiceDeps) {
 
     if (result.outcome === "accepted") {
       const recorded = await complete(notification, leadId, async (trx) => {
-        if (!(await markSent(trx, { id: notification.id, attemptNo: notification.attemptNo, providerMessageId: result.providerMessageId }))) return false;
+        if (!(await markSent(trx, { id: notification.id, attemptNo: notification.attemptNo, leaseGeneration: notification.leaseGeneration, providerMessageId: result.providerMessageId }))) return false;
         await insertAttempt(trx, { ...base, outcome: "accepted" });
         if (notification.channel === "webhook") await setWebhookHealth(trx, data.client.id, false);
         return true;
@@ -176,8 +175,9 @@ export function createDeliveryService(deps: DeliveryServiceDeps) {
     const permanent = result.outcome === "permanent_failure";
     const giveUp = permanent || notification.attemptNo >= notification.maxAttempts;
     const retryInMs = giveUp ? null : retryDelayMs(notification.attemptNo, random);
+    const providerIdempotencyKey = errorCode === IDEMPOTENCY_MISMATCH_CODE ? `delivery-${notification.id}-r${notification.attemptNo + 1}` : undefined;
     const recorded = await complete(notification, leadId, async (trx) => {
-      if (!(await markFailed(trx, { id: notification.id, attemptNo: notification.attemptNo, errorCode, retryInMs, permanent }))) return false;
+      if (!(await markFailed(trx, { id: notification.id, attemptNo: notification.attemptNo, leaseGeneration: notification.leaseGeneration, errorCode, retryInMs, permanent, ...(providerIdempotencyKey && { providerIdempotencyKey }) }))) return false;
       await insertAttempt(trx, { ...base, outcome: permanent ? "permanent_failure" : timedOut ? "timeout" : "retryable_failure", errorCode, httpStatus: result.httpStatus });
       if (giveUp && notification.channel === "webhook") await setWebhookHealth(trx, data.client.id, true);
       return true;

@@ -73,16 +73,15 @@ const EMPTY: ProcessSummary = { claimed: 0, sent: 0, retrying: 0, dead: 0, cance
 type Disposition = keyof Omit<ProcessSummary, "claimed"> | "lost";
 
 /**
- * The key is stable across attempts, so a retry after "the provider accepted it but we never heard" is answered with the
+ * The key is stored on the alert, so a retry after "the provider accepted it but we never heard" is answered with the
  * original result instead of a second email. ONE exception: if the provider says this key was already used for a DIFFERENT
  * payload (409 invalid_idempotent_request: for example the recipient list was changed mid-retry), retrying under the same
- * key can never succeed, so the next attempt uses a fresh key. That can duplicate an email that was in fact delivered, which
- * the design tolerates; losing an alert it does not.
+ * key can never succeed, so the next attempt's key is written to the row. A later timeout must not put the rejected key back.
+ * Rotating can duplicate an email that was in fact delivered, which the design tolerates; losing an alert it does not.
  */
 export const IDEMPOTENCY_MISMATCH_CODE = "invalid_idempotent_request";
 function idempotencyKeyFor(alert: ClaimedAlert): string {
-  const base = `operator-alert-${alert.id}`;
-  return alert.lastErrorCode === IDEMPOTENCY_MISMATCH_CODE ? `${base}-r${alert.attemptNo}` : base;
+  return alert.providerIdempotencyKey ?? `operator-alert-${alert.id}`;
 }
 
 /** Provider error codes are stored and logged: keep them short and free of anything that could echo input. */
@@ -179,9 +178,10 @@ export function createAlertService(deps: AlertServiceDeps): AlertService {
     const permanent = result.outcome === "permanent_failure";
     const giveUp = permanent || exhausted;
     const retryInMs = giveUp ? null : retryDelayMs(alert.attemptNo, random);
+    const providerIdempotencyKey = errorCode === IDEMPOTENCY_MISMATCH_CODE ? `operator-alert-${alert.id}-r${alert.attemptNo + 1}` : undefined;
 
     const recorded = await db.transaction().execute(async (trx) => {
-      if (!(await markFailed(trx, { alertId: alert.id, attemptNo: alert.attemptNo, errorCode, retryInMs }))) return false;
+      if (!(await markFailed(trx, { alertId: alert.id, attemptNo: alert.attemptNo, errorCode, retryInMs, ...(providerIdempotencyKey && { providerIdempotencyKey }) }))) return false;
       await insertAttempt(trx, {
         ...attempt,
         outcome: permanent ? "permanent_failure" : timedOut ? "timeout" : "retryable_failure",

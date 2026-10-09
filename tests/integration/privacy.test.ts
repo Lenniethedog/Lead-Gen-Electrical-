@@ -137,6 +137,10 @@ describe("erasing a lead", () => {
 
   it("removes every personal field, keeps what is not personal and the consent evidence, and retires the lead", async () => {
     const l = await lead({ phone: "+447911710003" });
+    await t.admin
+      .insertInto("lead_attributions")
+      .values({ lead_id: l.id, landing_path: "/quote?email=private.person@example.com", utm_term: "private.person", gclid: "click-private-person" })
+      .execute();
     const result = await s.privacy.erase({ operator: owner, leadId: l.id, reason: "consumer_request", requestId: "req-erase" });
     expect(result).toEqual({ ok: true, alreadyDone: false, notify: [] });
 
@@ -150,6 +154,12 @@ describe("erasing a lead", () => {
     // Nothing reaches back to the person.
     expect(await s.assignments.handover(crypto.randomUUID())).toBeUndefined();
     expect(await s.assignments.candidates(l.id)).toMatchObject({ postcode: null, clients: [] });
+    const attribution = await t.admin.selectFrom("lead_attributions").selectAll().where("lead_id", "=", l.id).executeTakeFirstOrThrow();
+    expect(attribution).toMatchObject({
+      landing_path: null, utm_term: null, utm_content: null, utm_source: null, utm_medium: null, utm_campaign: null,
+      gclid: null, fbclid: null, msclkid: null, referrer_host: null,
+    });
+    expect(JSON.stringify(attribution)).not.toContain("private.person");
   });
 
   it("remembers the person only as keyed hashes, taken BEFORE the data was blanked", async () => {

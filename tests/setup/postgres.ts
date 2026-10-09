@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runner } from "node-pg-migrate";
@@ -10,6 +11,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
 export const APP_ROLE = "leadgen_app";
 export const APP_ROLE_PASSWORD = "leadgen_app_test_only";
+/** The cross-trade CRM's read-only role (D68), created by running the real db/roles-crm.sql. */
+export const CRM_ROLE = "leadgen_crm";
+export const CRM_ROLE_PASSWORD = "leadgen_crm_test_only";
+
+/** db/roles-crm.sql with its psql variable filled in, so the tests run the file operators run (not a copy of it). */
+export function crmRoleScript(password = CRM_ROLE_PASSWORD): string {
+  const script = readFileSync(path.join(root, "db/roles-crm.sql"), "utf8");
+  if (!script.includes(":'crm_password'")) throw new Error("db/roles-crm.sql no longer takes :'crm_password'");
+  return script.replaceAll(":'crm_password'", `'${password.replaceAll("'", "''")}'`);
+}
 
 declare module "vitest" {
   export interface ProvidedContext {
@@ -48,6 +59,8 @@ export default async function setup(project: TestProject): Promise<() => Promise
     await admin.query(`create role ${APP_ROLE} login nosuperuser nocreatedb nocreaterole noinherit`);
   }
   await admin.query(`alter role ${APP_ROLE} password '${APP_ROLE_PASSWORD}'`);
+  // Before the migrations, as in a fresh environment: migration 0015 then grants the CRM role its views.
+  await admin.query(crmRoleScript());
   await admin.query("select pg_advisory_unlock(7242018)");
 
   const template = `leadgen_tpl_${process.pid}_${Date.now()}`;

@@ -35,6 +35,36 @@ export function setLogErrorSink(sink: LogErrorSink | undefined): void {
 
 const FORWARDED_FIELDS = ["alertId", "leadId", "kind", "errorCode", "check", "attemptNo", "httpStatus", "workerId"] as const;
 
+const SAFE_ERROR_FIELDS = ["name", "type", "message", "stack", "code", "severity", "schema", "table", "constraint", "routine"] as const;
+
+/**
+ * Allowlisted shape for an error that is about to be logged or reported.
+ * PostgreSQL puts the offending row values in `detail` (unique violations name the email or phone).
+ * That field is always overwritten; nothing else from the driver object is copied.
+ */
+export function sanitizeErrorForLog(error: unknown): Record<string, unknown> {
+  const source = error !== null && typeof error === "object" ? (error as Record<string, unknown>) : undefined;
+  const safe: Record<string, unknown> = {};
+  for (const key of SAFE_ERROR_FIELDS) {
+    const value = source?.[key];
+    if (typeof value === "string" || typeof value === "number") safe[key] = String(value).slice(0, 500);
+  }
+  if (safe.message === undefined) safe.message = error instanceof Error ? error.message.slice(0, 500) : "non-error thrown";
+  if (safe.name === undefined && error instanceof Error) safe.name = error.name;
+  safe.detail = "[redacted]";
+  return safe;
+}
+
+function errorForReporter(error: unknown): Error | undefined {
+  if (!(error instanceof Error)) return undefined;
+  const safe = sanitizeErrorForLog(error);
+  const clean = new Error(String(safe.message));
+  clean.name = typeof safe.name === "string" ? safe.name : error.name;
+  if (typeof safe.code === "string") (clean as Error & { code?: string }).code = safe.code;
+  clean.stack = error.stack;
+  return clean;
+}
+
 function toLoggedError(args: unknown[]): LoggedError {
   const first = args[0];
   const record = first !== null && typeof first === "object" ? (first as Record<string, unknown>) : undefined;
@@ -44,7 +74,7 @@ function toLoggedError(args: unknown[]): LoggedError {
     const value = record?.[field];
     if (typeof value === "string" || typeof value === "number") tags[field] = String(value).slice(0, 100);
   }
-  const error = record?.err instanceof Error ? record.err : undefined;
+  const error = errorForReporter(record?.err);
   return { message, ...(error && { error }), tags };
 }
 
@@ -59,6 +89,7 @@ export function createLogger(
       timestamp: pino.stdTimeFunctions.isoTime,
       formatters: { level: (label) => ({ level: label }) },
       redact: { paths: REDACT_PATHS, censor: "[redacted]" },
+      serializers: { err: sanitizeErrorForLog },
       hooks: {
         // Error-level lines also reach the error reporter, if one is registered. A reporting failure
         // must never break logging, which must never break the request.

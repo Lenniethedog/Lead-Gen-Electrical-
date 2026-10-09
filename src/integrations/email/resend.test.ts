@@ -120,9 +120,13 @@ describe("createResendSender", () => {
     fake = await startFakeResend(); // so afterEach has something to close
   });
 
-  it("accepts a success response without an id", async () => {
+  it("retries a success response that lost its provider id, under the same idempotency key", async () => {
     fake.queue({ status: 200, body: {} });
-    expect(await sender().send(message, { signal: signal() })).toEqual({ outcome: "accepted" });
+    const missing = await sender().send(message, { signal: signal() });
+    expect(missing).toEqual({ outcome: "retryable_failure", errorCode: "missing_provider_id", httpStatus: 200 });
+    const again = await sender().send(message, { signal: signal() });
+    expect(again).toEqual({ outcome: "accepted", providerMessageId: "email_1" });
+    expect(fake.requests.map((call) => call.idempotencyKey)).toEqual(["operator-alert-123", "operator-alert-123"]);
   });
 });
 

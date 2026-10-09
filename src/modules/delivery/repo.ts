@@ -20,10 +20,14 @@ export interface ClaimedNotification {
   attemptNo: number;
   maxAttempts: number;
   lastErrorCode: string | null;
+  /** Monotonic claim token. A manual retry resets attempt_count and must not reuse this. */
+  leaseGeneration: number;
+  /** Provider key for this send. Null until a payload mismatch stores a replacement. Ordinary failures leave it alone. */
+  providerIdempotencyKey: string | null;
 }
 
 export async function claimDue(db: Database, input: { limit: number; leaseSeconds: number }): Promise<ClaimedNotification[]> {
-  const { rows } = await sql<{ id: string; assignment_id: string; channel: Channel; attempt_count: number; max_attempts: number; last_error_code: string | null }>`
+  const { rows } = await sql<{ id: string; assignment_id: string; channel: Channel; attempt_count: number; max_attempts: number; last_error_code: string | null; lease_generation: number; provider_idempotency_key: string | null }>`
     with due as materialized (
       select id from notifications
        where status in ('pending', 'retrying') and next_attempt_at <= now()
@@ -32,10 +36,22 @@ export async function claimDue(db: Database, input: { limit: number; leaseSecond
        limit ${input.limit}
     )
     update notifications n
-       set status = 'sending', attempt_count = n.attempt_count + 1, locked_until = now() + make_interval(secs => ${input.leaseSeconds})
+       set status = 'sending',
+           attempt_count = n.attempt_count + 1,
+           lease_generation = n.lease_generation + 1,
+           locked_until = now() + make_interval(secs => ${input.leaseSeconds})
       from due where n.id = due.id
-    returning n.id, n.assignment_id, n.channel, n.attempt_count, n.max_attempts, n.last_error_code`.execute(db);
-  return rows.map((row) => ({ id: row.id, assignmentId: row.assignment_id, channel: row.channel, attemptNo: row.attempt_count, maxAttempts: row.max_attempts, lastErrorCode: row.last_error_code }));
+    returning n.id, n.assignment_id, n.channel, n.attempt_count, n.max_attempts, n.last_error_code, n.lease_generation, n.provider_idempotency_key`.execute(db);
+  return rows.map((row) => ({
+    id: row.id,
+    assignmentId: row.assignment_id,
+    channel: row.channel,
+    attemptNo: row.attempt_count,
+    maxAttempts: row.max_attempts,
+    lastErrorCode: row.last_error_code,
+    leaseGeneration: Number(row.lease_generation),
+    providerIdempotencyKey: row.provider_idempotency_key,
+  }));
 }
 
 export type DeliveryDataResult = { ok: true; data: DeliveryData; leadId: string } | { ok: false; reason: "assignment_ended" | "lead_erased" | "consent_withdrawn" | "not_found"; leadId: string | null };
@@ -98,32 +114,33 @@ export async function insertAttempt(db: Database, attempt: AttemptRecord): Promi
     .execute();
 }
 
-/** Compare-and-set on (status = 'sending', attempt_count): a worker whose lease was reclaimed cannot overwrite the newer state. */
-export async function markSent(db: Database, input: { id: string; attemptNo: number; providerMessageId?: string | undefined }): Promise<boolean> {
+/** Compare-and-set on (status = 'sending', attempt_count, lease_generation): a worker whose lease was reclaimed, or whose attempt number was reused after a manual retry, cannot overwrite the newer state. */
+export async function markSent(db: Database, input: { id: string; attemptNo: number; leaseGeneration: number; providerMessageId?: string | undefined }): Promise<boolean> {
   return updated(
     await db.updateTable("notifications")
       .set({ status: "sent", sent_at: sql<Date>`now()`, locked_until: null, last_error_code: null, provider_message_id: input.providerMessageId ?? null })
-      .where("id", "=", input.id).where("status", "=", "sending").where("attempt_count", "=", input.attemptNo).executeTakeFirst(),
+      .where("id", "=", input.id).where("status", "=", "sending").where("attempt_count", "=", input.attemptNo).where("lease_generation", "=", input.leaseGeneration).executeTakeFirst(),
   );
 }
 
-/** `retryInMs: null` gives up: `failed` for a permanent failure, `dead` for exhausted retries. */
-export async function markFailed(db: Database, input: { id: string; attemptNo: number; errorCode: string; retryInMs: number | null; permanent: boolean }): Promise<boolean> {
+/** `retryInMs: null` gives up: `failed` for a permanent failure, `dead` for exhausted retries. A payload-mismatch stores the next idempotency key; any other failure leaves the stored key as it is. */
+export async function markFailed(db: Database, input: { id: string; attemptNo: number; leaseGeneration: number; errorCode: string; retryInMs: number | null; permanent: boolean; providerIdempotencyKey?: string }): Promise<boolean> {
   return updated(
     await db.updateTable("notifications")
       .set({
         status: input.retryInMs !== null ? "retrying" : input.permanent ? "failed" : "dead",
         locked_until: null, last_error_code: input.errorCode,
         ...(input.retryInMs !== null && { next_attempt_at: sql<Date>`now() + make_interval(secs => ${input.retryInMs / 1000})` }),
+        ...(input.providerIdempotencyKey !== undefined && { provider_idempotency_key: input.providerIdempotencyKey }),
       })
-      .where("id", "=", input.id).where("status", "=", "sending").where("attempt_count", "=", input.attemptNo).executeTakeFirst(),
+      .where("id", "=", input.id).where("status", "=", "sending").where("attempt_count", "=", input.attemptNo).where("lease_generation", "=", input.leaseGeneration).executeTakeFirst(),
   );
 }
 
-export async function markCancelled(db: Database, input: { id: string; attemptNo: number; reason: string }): Promise<boolean> {
+export async function markCancelled(db: Database, input: { id: string; attemptNo: number; leaseGeneration: number; reason: string }): Promise<boolean> {
   return updated(
     await db.updateTable("notifications").set({ status: "cancelled", locked_until: null, last_error_code: input.reason })
-      .where("id", "=", input.id).where("status", "=", "sending").where("attempt_count", "=", input.attemptNo).executeTakeFirst(),
+      .where("id", "=", input.id).where("status", "=", "sending").where("attempt_count", "=", input.attemptNo).where("lease_generation", "=", input.leaseGeneration).executeTakeFirst(),
   );
 }
 
@@ -211,7 +228,12 @@ export async function problemNotifications(db: Database): Promise<ProblemRow[]> 
   return rows.map((row) => ({ ...toView(row), leadId: row.lead_id, reference: row.reference, clientName: row.client_name, assignmentStatus: row.assignment_status }));
 }
 
-/** Puts a failed/dead notification back in the queue (only while its assignment is still active). Compare-and-set on the status. */
+/**
+ * Puts a failed/dead notification back in the queue (only while its assignment is still active).
+ * attempt_count restarts so the business gets a fresh budget. lease_generation is NOT reset, and neither
+ * is provider_idempotency_key: a worker still in flight holds the old generation, and a key the provider
+ * already rejected must not be used again just because the last error code was cleared.
+ */
 export async function requeue(db: Database, notificationId: string): Promise<{ ok: true } | { ok: false; reason: "not_found" | "not_retryable" | "assignment_ended" }> {
   const { rows } = await sql<{ status: NotificationStatus; assignment_status: string }>`
     select n.status, a.status as assignment_status from notifications n join lead_assignments a on a.id = n.assignment_id where n.id = ${notificationId} for update of n`.execute(db);

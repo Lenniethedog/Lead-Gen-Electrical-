@@ -65,6 +65,24 @@ export async function blankPersonalData(db: Database, leadId: string): Promise<v
   // ...and what it wrote when it reported a problem with the lead.
   await sql`update disputes set description = null where description is not null and assignment_id in (select id from lead_assignments where lead_id = ${leadId})`.execute(db);
   await sql`update assignment_contact_attempts set note = null where note is not null and assignment_id in (select id from lead_assignments where lead_id = ${leadId})`.execute(db);
+  // Click ids and landing URLs are not contact columns, but they routinely carry the person's address,
+  // name or phone (query strings, search terms). Erasure clears every one of them.
+  await db
+    .updateTable("lead_attributions")
+    .set({
+      utm_source: null,
+      utm_medium: null,
+      utm_campaign: null,
+      utm_term: null,
+      utm_content: null,
+      gclid: null,
+      fbclid: null,
+      msclkid: null,
+      landing_path: null,
+      referrer_host: null,
+    })
+    .where("lead_id", "=", leadId)
+    .execute();
 }
 
 export async function hasWithdrawal(db: Database, leadId: string): Promise<boolean> {

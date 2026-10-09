@@ -289,6 +289,89 @@ export interface CreditLedger {
   reason: string | null;
 }
 
+export interface CrmAssignmentsV1 {
+  accepted_at: Timestamp | null;
+  client_id: string | null;
+  id: string | null;
+  lead_id: string | null;
+  notified_at: Timestamp | null;
+  price_pence: number | null;
+  rejected_at: Timestamp | null;
+  reserved_at: Timestamp | null;
+  sale_type: string | null;
+  status: string | null;
+  updated_at: Timestamp | null;
+}
+
+export interface CrmChargesV1 {
+  amount_pence: number | null;
+  assignment_id: string | null;
+  client_id: string | null;
+  created_at: Timestamp | null;
+  id: string | null;
+  reversed_at: Timestamp | null;
+  status: string | null;
+}
+
+export interface CrmClientServicesV1 {
+  client_id: string | null;
+  service_label: string | null;
+  service_slug: string | null;
+}
+
+export interface CrmClientsV1 {
+  balance_pence: Int8 | null;
+  billing_mode: string | null;
+  created_at: Timestamp | null;
+  delivery_mode: string | null;
+  id: string | null;
+  name: string | null;
+  status: string | null;
+  updated_at: Timestamp | null;
+}
+
+export interface CrmDisputesV1 {
+  assignment_id: string | null;
+  client_id: string | null;
+  created_at: Timestamp | null;
+  decided_at: Timestamp | null;
+  id: string | null;
+  reason: string | null;
+  resolution: string | null;
+  status: string | null;
+}
+
+export interface CrmLeadsV1 {
+  assignments_count: number | null;
+  created_at: Timestamp | null;
+  erased: boolean | null;
+  fraud_decision: string | null;
+  id: string | null;
+  needs_person: boolean | null;
+  postcode_outward: string | null;
+  reference: string | null;
+  service_label: string | null;
+  service_slug: string | null;
+  status: string | null;
+  status_changed_at: Timestamp | null;
+  urgency: string | null;
+}
+
+export interface CrmOutcomesV1 {
+  assignment_id: string | null;
+  client_id: string | null;
+  id: string | null;
+  job_value_pence: number | null;
+  occurred_at: Timestamp | null;
+  outcome: string | null;
+}
+
+export interface CrmTradeV1 {
+  contract_version: number | null;
+  name: string | null;
+  slug: string | null;
+}
+
 export interface Disputes {
   assignment_id: string;
   client_id: string;
@@ -476,9 +559,17 @@ export interface Notifications {
   delivered_at: Timestamp | null;
   id: Generated<string>;
   last_error_code: string | null;
+  /**
+   * Increments on every claim. Manual retry resets attempt_count but not this, so a stale worker cannot finish a later claim.
+   */
+  lease_generation: Generated<number>;
   locked_until: Timestamp | null;
   max_attempts: Generated<number>;
   next_attempt_at: Generated<Timestamp>;
+  /**
+   * Idempotency key for the next provider call. Set when a payload mismatch forces a new key; other failures leave it unchanged.
+   */
+  provider_idempotency_key: string | null;
   provider_message_id: string | null;
   sent_at: Timestamp | null;
   status: Generated<NotificationStatus>;
@@ -507,6 +598,10 @@ export interface OperatorAlerts {
   locked_until: Timestamp | null;
   max_attempts: Generated<number>;
   next_attempt_at: Generated<Timestamp>;
+  /**
+   * Idempotency key for the next provider call. Set when a payload mismatch forces a new key; other failures leave it unchanged.
+   */
+  provider_idempotency_key: string | null;
   provider_message_id: string | null;
   sent_at: Timestamp | null;
   status: Generated<OperatorAlertStatus>;
@@ -679,6 +774,14 @@ export interface DB {
   consent_records: ConsentRecords;
   consent_texts: ConsentTexts;
   credit_ledger: CreditLedger;
+  "crm.assignments_v1": CrmAssignmentsV1;
+  "crm.charges_v1": CrmChargesV1;
+  "crm.client_services_v1": CrmClientServicesV1;
+  "crm.clients_v1": CrmClientsV1;
+  "crm.disputes_v1": CrmDisputesV1;
+  "crm.leads_v1": CrmLeadsV1;
+  "crm.outcomes_v1": CrmOutcomesV1;
+  "crm.trade_v1": CrmTradeV1;
   disputes: Disputes;
   lead_assignment_status_history: LeadAssignmentStatusHistory;
   lead_assignments: LeadAssignments;

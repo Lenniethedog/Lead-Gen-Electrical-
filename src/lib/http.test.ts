@@ -1,3 +1,4 @@
+import { Writable } from "node:stream";
 import pino from "pino";
 import { describe, expect, it } from "vitest";
 import { AppError, ValidationError } from "./errors";
@@ -160,5 +161,31 @@ describe("errorResponse", () => {
     expect(body).toContain("internal_error");
     expect(body).not.toContain("ECONNREFUSED");
     expect(body).not.toContain("hunter2");
+  });
+
+  it("logs a database error without the row values in err.detail", () => {
+    const lines: string[] = [];
+    const logger = pino(
+      { level: "error" },
+      new Writable({
+        write(chunk, _encoding, callback) {
+          lines.push(String(chunk));
+          callback();
+        },
+      }),
+    );
+    const error = Object.assign(new Error("duplicate key value violates unique constraint"), {
+      code: "23505",
+      table: "lead_contacts",
+      constraint: "lead_contacts_email_key",
+      detail: "Key (email)=(private.person@example.com) already exists.",
+    });
+    errorResponse(error, { requestId: "req-3", logger });
+    const logged = lines.join("");
+    expect(logged).not.toContain("private.person@example.com");
+    expect(logged).not.toContain("Key (email)");
+    expect(logged).toContain("[redacted]");
+    expect(logged).toContain("23505");
+    expect(logged).toContain("lead_contacts");
   });
 });

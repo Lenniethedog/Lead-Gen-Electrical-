@@ -102,6 +102,13 @@ describe("the destination is defended, with the test-only exemption OFF (as in p
       expect(await never.send(message(url), ctx()), url).toEqual({ outcome: "permanent_failure", errorCode: "destination_not_public" });
     }
   });
+  it("a DNS lookup that never returns is cut off by the deadline instead of stalling the worker", async () => {
+    const sender = createWebhookSender({ resolve: () => new Promise<string[]>(() => undefined) });
+    const started = Date.now();
+    const result = await sender.send(message("https://slow.example/x"), { signal: AbortSignal.timeout(80) });
+    expect(result).toEqual({ outcome: "retryable_failure", errorCode: "timeout" });
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
   it("a name that does not resolve is retryable (DNS may come back), not permanent", async () => {
     const sender = createWebhookSender({ resolve: async () => { throw new Error("ENOTFOUND"); } });
     expect(await sender.send(message("https://nowhere.example/x"), ctx())).toEqual({ outcome: "retryable_failure", errorCode: "dns_error" });

@@ -8,6 +8,7 @@ import {
   UnsupportedMediaTypeError,
 } from "./errors";
 import { resolveClientIp, resolveCountry, type ClientIpConfig } from "./ip";
+import { sanitizeErrorForLog } from "./logger";
 
 export interface RequestContext {
   /** Correlates logs, lead events and error responses for one request. */
@@ -131,7 +132,8 @@ export function errorResponse(error: unknown, context: { requestId: string; logg
     );
   }
 
-  context.logger.error({ err: error }, "unhandled error while handling request");
+  // `detail` on a Postgres error quotes the row (email, phone). Log an allowlisted shape only.
+  context.logger.error({ err: sanitizeErrorForLog(error) }, "unhandled error while handling request");
   return jsonResponse(
     {
       error: {

@@ -159,9 +159,9 @@ export function createLeadService(deps: LeadServiceDeps): LeadService {
     const outcome = await deps.db.transaction().execute(async (trx): Promise<TransactionOutcome> => {
       await setAuditContext(trx, { actorType: "consumer", requestId: request.requestId });
 
-      // Serialise this person's concurrent submissions, then re-check for a retry that committed
-      // while we waited for the lock.
-      await lockIdentity(trx, phoneE164);
+      // Serialise this person's concurrent submissions (phone and email, in a fixed order), then
+      // re-check for a retry that committed while we waited for the locks.
+      await lockIdentity(trx, phoneE164, emailNormalised);
       const committed = await findByIdempotencyKey(trx, idempotencyKey);
       if (committed) return { kind: "replay", existing: committed };
 

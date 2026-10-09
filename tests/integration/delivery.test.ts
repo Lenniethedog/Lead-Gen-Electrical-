@@ -262,8 +262,8 @@ describe("what the assignment waits for", () => {
     await env.drain();
     const keys = env.email.calls.map((call) => call.idempotencyKey);
     expect(keys[0]).toBe(`delivery-${row!.id}`);
-    expect(keys[1]).toBe(`delivery-${row!.id}-r2`); // after the 409: a fresh key
-    expect(keys[2]).toBe(`delivery-${row!.id}`); // after an ordinary failure: back to the stable key
+    expect(keys[1]).toBe(`delivery-${row!.id}-r2`); // after the 409: a fresh key, stored on the row
+    expect(keys[2]).toBe(`delivery-${row!.id}-r2`); // an ordinary failure must not roll back to the rejected key
   });
 });
 

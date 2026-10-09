@@ -19,6 +19,53 @@ export interface WebhookSenderOptions {
 
 const defaultResolve = async (hostname: string): Promise<string[]> => (await dnsLookup(hostname, { all: true, verbatim: true })).map((entry) => entry.address);
 
+/** DNS, connect, request and response all share this ceiling. A lookup must not stall the worker outside the HTTP timeout. */
+const WEBHOOK_DEADLINE_MS = 5_000;
+
+function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = (error as Error & { code?: string }).code;
+  return error.name === "TimeoutError" || error.name === "AbortError" || code === "ABORT_ERR";
+}
+
+/** Parent abort OR a hard 5s cap, whichever comes first. `cancel` drops the timer once the send has settled. */
+function masterDeadline(parent: AbortSignal): { signal: AbortSignal; cancel: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(Object.assign(new Error("timeout"), { name: "TimeoutError" })), WEBHOOK_DEADLINE_MS);
+  const onParent = () => controller.abort(parent.reason);
+  if (parent.aborted) onParent();
+  else parent.addEventListener("abort", onParent, { once: true });
+  return {
+    signal: controller.signal,
+    cancel: () => {
+      clearTimeout(timer);
+      parent.removeEventListener("abort", onParent);
+    },
+  };
+}
+
+function resolveWithin(resolveHost: () => Promise<string[]>, signal: AbortSignal): Promise<string[]> {
+  return new Promise((resolveAddresses, rejectAddresses) => {
+    let settled = false;
+    const finish = (run: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      run();
+    };
+    const onAbort = () => finish(() => rejectAddresses(signal.reason instanceof Error ? signal.reason : Object.assign(new Error("timeout"), { name: "TimeoutError" })));
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+    resolveHost().then(
+      (addresses) => finish(() => resolveAddresses(addresses)),
+      (error: unknown) => finish(() => rejectAddresses(error)),
+    );
+  });
+}
+
 /**
  * Signed webhook delivery to a business's own system (docs/03). Defences, in order:
  *   1. https only, no credentials in the URL;
@@ -46,72 +93,78 @@ export function createWebhookSender(options: WebhookSenderOptions = {}): Webhook
       if (url.username || url.password) return { outcome: "permanent_failure", errorCode: "credentials_in_url" };
 
       const hostname = url.hostname.replace(/^\[|\]$/g, "");
-      let addresses: string[];
+      const deadline = masterDeadline(signal);
       try {
-        addresses = /^[0-9.]+$/.test(hostname) || hostname.includes(":") ? [hostname] : await resolve(hostname);
-      } catch {
-        return { outcome: "retryable_failure", errorCode: "dns_error" };
-      }
-      if (addresses.length === 0) return { outcome: "retryable_failure", errorCode: "dns_error" };
-      if (!loose && !addresses.every(isPublicAddress)) return { outcome: "permanent_failure", errorCode: "destination_not_public" };
-      const address = addresses[0]!;
+        let addresses: string[];
+        try {
+          const literal = /^[0-9.]+$/.test(hostname) || hostname.includes(":");
+          addresses = literal ? [hostname] : await resolveWithin(() => resolve(hostname), deadline.signal);
+        } catch (error) {
+          return { outcome: "retryable_failure", errorCode: isTimeoutError(error) || deadline.signal.aborted ? "timeout" : "dns_error" };
+        }
+        if (addresses.length === 0) return { outcome: "retryable_failure", errorCode: "dns_error" };
+        if (!loose && !addresses.every(isPublicAddress)) return { outcome: "permanent_failure", errorCode: "destination_not_public" };
+        const address = addresses[0]!;
 
-      const timestamp = Math.floor(Date.now() / 1000);
-      const headers: Record<string, string> = {
-        "content-type": "application/json",
-        "content-length": String(Buffer.byteLength(message.body)),
-        host: url.host,
-        "user-agent": options.userAgent ?? "leadgen-webhook/1",
-        "x-leadgen-event": message.event,
-        "x-leadgen-delivery": message.deliveryId,
-        "x-leadgen-timestamp": String(timestamp),
-        "x-leadgen-signature": signWebhook(message.secret, timestamp, message.body),
-      };
-
-      return new Promise<SendResult>((resolvePromise) => {
-        let settled = false;
-        const finish = (result: SendResult) => {
-          if (settled) return;
-          settled = true;
-          resolvePromise(result);
+        const timestamp = Math.floor(Date.now() / 1000);
+        const headers: Record<string, string> = {
+          "content-type": "application/json",
+          "content-length": String(Buffer.byteLength(message.body)),
+          host: url.host,
+          "user-agent": options.userAgent ?? "leadgen-webhook/1",
+          "x-leadgen-event": message.event,
+          "x-leadgen-delivery": message.deliveryId,
+          "x-leadgen-timestamp": String(timestamp),
+          "x-leadgen-signature": signWebhook(message.secret, timestamp, message.body),
         };
-        const transport = url.protocol === "https:" ? https : http;
-        const request = transport.request(
-          {
-            host: address,
-            port: url.port || (url.protocol === "https:" ? 443 : 80),
-            path: `${url.pathname}${url.search}`,
-            method: "POST",
-            headers,
-            servername: url.protocol === "https:" && !/^[0-9.]+$/.test(hostname) && !hostname.includes(":") ? hostname : undefined,
-            signal,
-            timeout: DELIVERY_POLICY.webhookTimeoutMs,
-          } as https.RequestOptions,
-          (response) => {
-            let received = 0;
-            response.on("data", (chunk: Buffer) => {
-              received += chunk.length;
-              if (received > DELIVERY_POLICY.webhookMaxResponseBytes) response.destroy(); // enough: only the status matters
-            });
-            const status = response.statusCode ?? 0;
-            const done = () => {
-              if (status >= 200 && status < 300) finish({ outcome: "accepted" });
-              else if (status === 408 || status === 429 || status >= 500) finish({ outcome: "retryable_failure", errorCode: `http_${status}`, httpStatus: status });
-              else if (status >= 300 && status < 400) finish({ outcome: "permanent_failure", errorCode: "redirect_not_followed", httpStatus: status });
-              else finish({ outcome: "permanent_failure", errorCode: `http_${status}`, httpStatus: status });
-            };
-            response.on("end", done);
-            response.on("close", done); // destroyed because it was too large: the status is still what counts
-            response.on("error", done);
-          },
-        );
-        request.on("timeout", () => request.destroy(Object.assign(new Error("timeout"), { name: "TimeoutError" })));
-        request.on("error", (error: Error & { code?: string }) => {
-          const timedOut = error.name === "TimeoutError" || error.name === "AbortError" || error.code === "ABORT_ERR";
-          finish({ outcome: "retryable_failure", errorCode: timedOut ? "timeout" : "network_error" });
+
+        return await new Promise<SendResult>((resolvePromise) => {
+          let settled = false;
+          const finish = (result: SendResult) => {
+            if (settled) return;
+            settled = true;
+            resolvePromise(result);
+          };
+          const transport = url.protocol === "https:" ? https : http;
+          const request = transport.request(
+            {
+              host: address,
+              port: url.port || (url.protocol === "https:" ? 443 : 80),
+              path: `${url.pathname}${url.search}`,
+              method: "POST",
+              headers,
+              servername: url.protocol === "https:" && !/^[0-9.]+$/.test(hostname) && !hostname.includes(":") ? hostname : undefined,
+              signal: deadline.signal,
+              timeout: WEBHOOK_DEADLINE_MS,
+            } as https.RequestOptions,
+            (response) => {
+              let received = 0;
+              response.on("data", (chunk: Buffer) => {
+                received += chunk.length;
+                if (received > DELIVERY_POLICY.webhookMaxResponseBytes) response.destroy(); // enough: only the status matters
+              });
+              const status = response.statusCode ?? 0;
+              const done = () => {
+                if (status >= 200 && status < 300) finish({ outcome: "accepted" });
+                else if (status === 408 || status === 429 || status >= 500) finish({ outcome: "retryable_failure", errorCode: `http_${status}`, httpStatus: status });
+                else if (status >= 300 && status < 400) finish({ outcome: "permanent_failure", errorCode: "redirect_not_followed", httpStatus: status });
+                else finish({ outcome: "permanent_failure", errorCode: `http_${status}`, httpStatus: status });
+              };
+              response.on("end", done);
+              response.on("close", done); // destroyed because it was too large: the status is still what counts
+              response.on("error", done);
+            },
+          );
+          request.on("timeout", () => request.destroy(Object.assign(new Error("timeout"), { name: "TimeoutError" })));
+          request.on("error", (error: Error & { code?: string }) => {
+            const timedOut = error.name === "TimeoutError" || error.name === "AbortError" || error.code === "ABORT_ERR";
+            finish({ outcome: "retryable_failure", errorCode: timedOut ? "timeout" : "network_error" });
+          });
+          request.end(message.body);
         });
-        request.end(message.body);
-      });
+      } finally {
+        deadline.cancel();
+      }
     },
   };
 }

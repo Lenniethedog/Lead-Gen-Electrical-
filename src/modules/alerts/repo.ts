@@ -25,8 +25,10 @@ export interface ClaimedAlert {
   /** 1-based number of the attempt this claim represents. */
   attemptNo: number;
   maxAttempts: number;
-  /** Why the PREVIOUS attempt failed (null on the first). The service uses it to rotate the idempotency key. */
+  /** Why the PREVIOUS attempt failed (null on the first). */
   lastErrorCode: string | null;
+  /** Key to send. Null until a payload mismatch stores a replacement; later failures must not clear it. */
+  providerIdempotencyKey: string | null;
 }
 
 const updated = (result: { numUpdatedRows: bigint }) => result.numUpdatedRows > 0n;
@@ -67,6 +69,7 @@ export async function claimDueAlerts(db: Database, input: { limit: number; lease
     attempt_count: number;
     max_attempts: number;
     last_error_code: string | null;
+    provider_idempotency_key: string | null;
   }>`
     with due as materialized (
       select id from operator_alerts
@@ -81,7 +84,7 @@ export async function claimDueAlerts(db: Database, input: { limit: number; lease
            locked_until = now() + make_interval(secs => ${input.leaseSeconds})
       from due
      where a.id = due.id
-    returning a.id, a.lead_id, a.kind, a.attempt_count, a.max_attempts, a.last_error_code`.execute(db);
+    returning a.id, a.lead_id, a.kind, a.attempt_count, a.max_attempts, a.last_error_code, a.provider_idempotency_key`.execute(db);
   return rows.map((row) => ({
     id: row.id,
     leadId: row.lead_id,
@@ -89,6 +92,7 @@ export async function claimDueAlerts(db: Database, input: { limit: number; lease
     attemptNo: row.attempt_count,
     maxAttempts: row.max_attempts,
     lastErrorCode: row.last_error_code,
+    providerIdempotencyKey: row.provider_idempotency_key,
   }));
 }
 
@@ -187,7 +191,7 @@ export async function markSent(
 /** `retryInMs: null` means give up (dead); otherwise try again after that delay. */
 export async function markFailed(
   db: Database,
-  input: { alertId: string; attemptNo: number; errorCode: string; retryInMs: number | null },
+  input: { alertId: string; attemptNo: number; errorCode: string; retryInMs: number | null; providerIdempotencyKey?: string },
 ): Promise<boolean> {
   const result = await db
     .updateTable("operator_alerts")
@@ -196,6 +200,7 @@ export async function markFailed(
       locked_until: null,
       last_error_code: input.errorCode,
       ...(input.retryInMs !== null && { next_attempt_at: sql<Date>`now() + make_interval(secs => ${input.retryInMs / 1000})` }),
+      ...(input.providerIdempotencyKey !== undefined && { provider_idempotency_key: input.providerIdempotencyKey }),
     })
     .where("id", "=", input.alertId)
     .where("status", "=", "sending")

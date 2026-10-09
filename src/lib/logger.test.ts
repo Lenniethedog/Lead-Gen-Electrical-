@@ -45,6 +45,16 @@ describe("logger redaction (a seat belt: the real rule is to not log personal da
     expect(lines.join("")).not.toMatch(/abc\.def|session=xyz/);
   });
 
+  it("overwrites err.detail so a database error cannot log the row", () => {
+    const { logger, lines } = capture();
+    const error = Object.assign(new Error("duplicate key"), { code: "23505", detail: "Key (email)=(private.person@example.com) already exists." });
+    logger.error({ err: error }, "db failed");
+    const output = lines.join("");
+    expect(output).not.toContain("private.person@example.com");
+    expect(output).toContain("[redacted]");
+    expect(output).toContain("23505");
+  });
+
   it("emits one JSON object per line with a readable level", () => {
     const { logger, lines } = capture();
     logger.warn({ code: "x" }, "careful");
